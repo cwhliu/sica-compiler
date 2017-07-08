@@ -1,0 +1,6 @@
+
+install:
+	CGO_LDFLAGS="-L`llvm-config-4.0 --libdir`" go install ./...
+install-dep:
+	go get -d -u github.com/go-clang/v3.9/...
+
