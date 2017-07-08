@@ -1,17 +1,15 @@
-
 package main
 
 import (
-  "fmt"
+	"fmt"
 
-  "github.com/cwhliu/sica-compiler/forge"
+	"github.com/cwhliu/sica-compiler/forge"
 )
 
 func main() {
-  fmt.Println("SICA")
+	f := forge.Forge{}
 
-  f := forge.Forge{}
-
-  fmt.Printf("%T\n", f)
+	if err := f.Parse(); err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+	}
 }
-
