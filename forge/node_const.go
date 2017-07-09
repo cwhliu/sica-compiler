@@ -1,19 +1,19 @@
 package forge
 
-type nodeCategory int
+type nodeKind int
 
 const (
-	input nodeCategory = iota
+	input nodeKind = iota
 	output
 	internal
 	operation
 	constant
 )
 
-type nodeOperation int
+type nodeOp int
 
 const (
-	equal nodeOperation = iota
+	equal nodeOp = iota
 	neg
 	add
 	sub
@@ -34,3 +34,8 @@ const (
 	cosh
 	tanh
 )
+
+var validNodeOp = make(map[string]bool)
+
+func init() {
+}

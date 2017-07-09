@@ -3,12 +3,19 @@ package forge
 import "fmt"
 
 type node struct {
-	name      string
-	category  nodeCategory
-	operation nodeOperation
+	name string
+	kind nodeKind
+	op   nodeOp
 
 	fanins  []*node
 	fanouts []*node
+}
+
+// Create and initialize a node, and return a pointer to the node
+func createNode(name string, kind nodeKind, op nodeOp) *node {
+	n := &node{name: name, kind: kind, op: op}
+
+	return n
 }
 
 // Fanins
