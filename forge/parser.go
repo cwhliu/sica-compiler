@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-clang/v3.9/clang"
+	"github.com/cwhliu/go-clang/clang"
 )
 
 type parser struct {
@@ -155,5 +155,7 @@ func (p *parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
 
 // Parse operator
 func (p *parser) parseOperator(cursor clang.Cursor) bool {
+  fmt.Println(cursor.OperatorSpelling())
+
 	return true
 }
