@@ -1,6 +1,6 @@
 package forge
 
-import "fmt"
+//import "fmt"
 
 type graph struct {
 	allNodes       map[string]*node
@@ -11,7 +11,9 @@ type graph struct {
 	constantNodes  map[string]*node
 }
 
-// Create and initialize a graph, and return a pointer to the graph
+/*
+Create and initialize a graph, and return a pointer to the graph
+*/
 func createGraph() *graph {
 	g := &graph{}
 
@@ -25,23 +27,28 @@ func createGraph() *graph {
 	return g
 }
 
+/*
+Get the number of total nodes
+*/
 func (g *graph) numAllNodes() int {
 	return len(g.allNodes)
 }
 
-// Add an internal node to the graph
-func (g *graph) addInternalNode(name string) bool {
-	// Check if the name is duplicated
-	if _, exist := g.allNodes[name]; exist {
-		fmt.Printf("graph error - adding duplicated internal node %s\n", name)
-
-		return false
-	}
-
-	n := createNode(name, internal, equal)
-
-	g.allNodes[name] = n
-	g.internalNodes[name] = n
-
-	return true
-}
+/*
+Add an internal node to the graph
+*/
+//func (g *graph) addInternalNode(name string) bool {
+//	// Check if the name is duplicated
+//	if _, exist := g.allNodes[name]; exist {
+//		fmt.Printf("graph error - adding duplicated internal node %s\n", name)
+//
+//		return false
+//	}
+//
+//	n := createNode(name, internal, equal)
+//
+//	g.allNodes[name] = n
+//	g.internalNodes[name] = n
+//
+//	return true
+//}

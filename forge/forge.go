@@ -6,8 +6,8 @@ type Forge struct {
 	parser
 }
 
-func (f *Forge) Parse() error {
-	if g, err := f.parse(); err != nil {
+func (f *Forge) Parse(fname string) error {
+	if g, err := f.parse(fname); err != nil {
 		return err
 	} else {
 		fmt.Printf("Graph has %d nodes\n", g.numAllNodes())
