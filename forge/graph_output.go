@@ -1,12 +1,12 @@
 package forge
 
 import (
-  "fmt"
-  "os"
-  "bufio"
+	"bufio"
+	"fmt"
+	"os"
 )
 
-func (g *Graph) outputDotFile() {
+func (g *Graph) OutputDotFile() {
 	f, _ := os.Create("graph.dot")
 	defer f.Close()
 
@@ -57,8 +57,8 @@ func (g *Graph) outputDotFile() {
 
 	// Edges
 	for _, node := range g.allNodes {
-		for i := 0; i < node.numFanins(); i++ {
-			fanin, _ := node.fanin(i)
+		for i := 0; i < node.NumFanins(); i++ {
+			fanin, _ := node.Fanin(i)
 
 			w.WriteString(fmt.Sprintf("\"%s\" -> \"%s\"\n", fanin.name, node.name))
 		}

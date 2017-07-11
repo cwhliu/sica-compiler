@@ -3,18 +3,18 @@ package forge
 import "fmt"
 
 type Forge struct {
-	Parser
+	parser Parser
 }
 
 func (f *Forge) Parse(fname string) error {
-	if g, err := f.parse(fname); err != nil {
+	if g, err := f.parser.Parse(fname); err != nil {
 		return err
 	} else {
-    g.optDeleteInternalNodes()
+		g.OptDeleteInternalNodes()
 
-		fmt.Printf("Graph has %d nodes\n", g.numAllNodes())
+		fmt.Printf("Graph has %d nodes\n", g.NumAllNodes())
 
-		g.outputDotFile()
+		g.OutputDotFile()
 
 		return nil
 	}

@@ -17,7 +17,7 @@ type Graph struct {
 /*
 Create and initialize a graph, and return a pointer to the graph
 */
-func createGraph() *Graph {
+func CreateGraph() *Graph {
 	g := &Graph{}
 
 	g.allNodes = make(map[string]*Node)
@@ -35,7 +35,7 @@ func createGraph() *Graph {
 /*
 Get the number of total nodes
 */
-func (g *Graph) numAllNodes() int {
+func (g *Graph) NumAllNodes() int {
 	return len(g.allNodes)
 }
 
@@ -44,7 +44,7 @@ func (g *Graph) numAllNodes() int {
 /*
 Add an operation node to the graph
 */
-func (g *Graph) addOperationNode(opString string) *Node {
+func (g *Graph) AddOperationNode(opString string) *Node {
 	name := "OPR" + strconv.Itoa(len(g.operationNodes))
 
 	if _, exist := NodeOpLUT[opString]; !exist {
@@ -63,7 +63,7 @@ func (g *Graph) addOperationNode(opString string) *Node {
 /*
 Get a node by its name, create the node if it doesn't exist
 */
-func (g *Graph) getNodeByName(name string) *Node {
+func (g *Graph) GetNodeByName(name string) *Node {
 	// Create a new node if a node with the same name does not exist
 	if _, exist := g.allNodes[name]; !exist {
 		var newNode *Node
@@ -93,13 +93,13 @@ func (g *Graph) getNodeByName(name string) *Node {
 /*
 Things need to be done before the graph can be used
 */
-func (g *Graph) finalize() {
+func (g *Graph) Finalize() {
 	// Determine node kind for variable nodes
 	for name, node := range g.allNodes {
 		if node.kind == NodeKind_Undetermined {
-			if node.numFanins() == 0 {
+			if node.NumFanins() == 0 {
 				g.inputNodes[name] = node
-			} else if node.numFanouts() == 0 {
+			} else if node.NumFanouts() == 0 {
 				g.outputNodes[name] = node
 			} else {
 				g.internalNodes[name] = node
@@ -108,19 +108,19 @@ func (g *Graph) finalize() {
 	}
 }
 
-func (g *Graph) deleteNodeByName(name string) {
-  switch g.allNodes[name].kind {
-  case NodeKind_Input:
-    delete(g.inputNodes, name)
-  case NodeKind_Output:
-    delete(g.outputNodes, name)
-  case NodeKind_Internal:
-    delete(g.internalNodes, name)
-  case NodeKind_Operation:
-    delete(g.operationNodes, name)
-  case NodeKind_Constant:
-    delete(g.constantNodes, name)
-  }
+func (g *Graph) DeleteNodeByName(name string) {
+	switch g.allNodes[name].kind {
+	case NodeKind_Input:
+		delete(g.inputNodes, name)
+	case NodeKind_Output:
+		delete(g.outputNodes, name)
+	case NodeKind_Internal:
+		delete(g.internalNodes, name)
+	case NodeKind_Operation:
+		delete(g.operationNodes, name)
+	case NodeKind_Constant:
+		delete(g.constantNodes, name)
+	}
 
-  delete(g.allNodes, name)
+	delete(g.allNodes, name)
 }

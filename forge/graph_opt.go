@@ -2,21 +2,21 @@ package forge
 
 import "fmt"
 
-func (g *Graph) optDeleteInternalNodes() {
-  for name, node := range g.internalNodes {
-    if node.numFanins() != 1 {
-      fmt.Println("optimizer error - internal nodes should have single fanin")
-      return
-    }
+func (g *Graph) OptDeleteInternalNodes() {
+	for name, node := range g.internalNodes {
+		if node.NumFanins() != 1 {
+			fmt.Println("optimizer error - internal nodes should have single fanin")
+			return
+		}
 
-    fi, _ := node.fanin(0)
-    fi.removeFanout(node)
+		fi, _ := node.Fanin(0)
+		fi.RemoveFanout(node)
 
-    for _, fo := range node.fanouts {
-      fi.addFanout(fo)
-      fo.replaceFanin(node, fi)
-    }
+		for _, fo := range node.fanouts {
+			fi.AddFanout(fo)
+			fo.ReplaceFanin(node, fi)
+		}
 
-    g.deleteNodeByName(name)
-  }
+		g.DeleteNodeByName(name)
+	}
 }

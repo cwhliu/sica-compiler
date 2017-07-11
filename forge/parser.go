@@ -8,7 +8,7 @@ import (
 )
 
 type Parser struct {
-	ParserStack
+	parserStack
 
 	graph *Graph
 }
@@ -16,8 +16,8 @@ type Parser struct {
 /*
 Parse a MEX cc file and build a corresponding graph
 */
-func (p *Parser) parse(fname string) (*Graph, error) {
-	p.graph = createGraph()
+func (p *Parser) Parse(fname string) (*Graph, error) {
+	p.graph = CreateGraph()
 
 	// Create a new index to store translation units
 	//  arg1: exclude declarations from precompiled header
@@ -91,7 +91,7 @@ func (p *Parser) parse(fname string) (*Graph, error) {
 		return nil, fmt.Errorf("problem building graph for %s", fname)
 	}
 
-	p.graph.finalize()
+	p.graph.Finalize()
 	fmt.Printf("%s %d ", fname, len(p.tokens))
 
 	return p.graph, nil
@@ -194,21 +194,21 @@ func (p *Parser) processStack() {
 		switch token[0:3] {
 		default:
 		case "ARR":
-			operand := p.graph.getNodeByName("ARR" + args[0][3:] + "[" + args[1][3:] + "]")
+			operand := p.graph.GetNodeByName("ARR" + args[0][3:] + "[" + args[1][3:] + "]")
 
 			p.pushLeafToken(operand.name)
 		case "BOP":
 			opcode := token[3:]
 
-			lOperand := p.graph.getNodeByName(args[0])
-			rOperand := p.graph.getNodeByName(args[1])
+			lOperand := p.graph.GetNodeByName(args[0])
+			rOperand := p.graph.GetNodeByName(args[1])
 
 			if opcode == "=" {
-				lOperand.receive(rOperand)
+				lOperand.Receive(rOperand)
 			} else {
-				opNode := p.graph.addOperationNode(opcode)
-				opNode.receive(lOperand)
-				opNode.receive(rOperand)
+				opNode := p.graph.AddOperationNode(opcode)
+				opNode.Receive(lOperand)
+				opNode.Receive(rOperand)
 
 				p.pushLeafToken(opNode.name)
 			}
@@ -216,10 +216,10 @@ func (p *Parser) processStack() {
 			opcode := token[3:]
 
 			if opcode == "-" {
-				operand := p.graph.getNodeByName(args[0])
+				operand := p.graph.GetNodeByName(args[0])
 
-				opNode := p.graph.addOperationNode(opcode)
-				opNode.receive(operand)
+				opNode := p.graph.AddOperationNode(opcode)
+				opNode.Receive(operand)
 
 				p.pushLeafToken(opNode.name)
 			} else {
@@ -230,19 +230,19 @@ func (p *Parser) processStack() {
 			numParms := len(args)
 
 			if numParms == 2 {
-				operand1 := p.graph.getNodeByName(args[0])
-				operand2 := p.graph.getNodeByName(args[1])
+				operand1 := p.graph.GetNodeByName(args[0])
+				operand2 := p.graph.GetNodeByName(args[1])
 
-				opNode := p.graph.addOperationNode(funcName)
-				opNode.receive(operand1)
-				opNode.receive(operand2)
+				opNode := p.graph.AddOperationNode(funcName)
+				opNode.Receive(operand1)
+				opNode.Receive(operand2)
 
 				p.pushLeafToken(opNode.name)
 			} else {
-				operand := p.graph.getNodeByName(args[0])
+				operand := p.graph.GetNodeByName(args[0])
 
-				opNode := p.graph.addOperationNode(funcName)
-				opNode.receive(operand)
+				opNode := p.graph.AddOperationNode(funcName)
+				opNode.Receive(operand)
 
 				p.pushLeafToken(opNode.name)
 			}
