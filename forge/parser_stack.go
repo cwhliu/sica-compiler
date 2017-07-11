@@ -4,8 +4,6 @@ type parserStack struct {
 	tokens         []string
 	tokenPopCounts []int
 	tokenArgCounts []int
-
-	results []*node
 }
 
 // -----------------------------------------------------------------------------
@@ -59,24 +57,4 @@ func (s *parserStack) popToken() (string, []string) {
 	s.tokenArgCounts = s.tokenArgCounts[:len(s.tokenArgCounts)-popCount]
 
 	return token, args
-}
-
-// -----------------------------------------------------------------------------
-
-/*
-Push an intermediate result to the stack
-*/
-func (s *parserStack) pushResult(nd *node) {
-	s.pushLeafToken("RESULT")
-
-	s.results = append(s.results, nd)
-}
-
-/*
-Pop the top intermediate result from the stack
-*/
-func (s *parserStack) popResult() *node {
-	defer func() { s.results = s.results[:len(s.results)-1] }()
-
-	return s.results[len(s.results)-1]
 }

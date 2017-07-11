@@ -11,13 +11,16 @@ type node struct {
 	fanouts []*node
 }
 
-/*
-Create and initialize a node, and return a pointer to the node
-*/
-func createNode(name string, kind nodeKind, op nodeOp) *node {
-	n := &node{name: name, kind: kind, op: op}
+// -----------------------------------------------------------------------------
 
-	return n
+/*
+Node n receives node nd as a fanin
+*/
+func (n *node) receive(nd *node) {
+	// Set nd to be n's fanin
+	n.fanins = append(n.fanins, nd)
+	// Set n to be nd's fanout
+	nd.fanouts = append(nd.fanouts, n)
 }
 
 // Fanins

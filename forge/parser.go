@@ -3,7 +3,6 @@ package forge
 import (
 	"fmt"
 	"strings"
-	//"strconv"
 
 	"github.com/cwhliu/go-clang/clang"
 )
@@ -65,14 +64,6 @@ func (p *parser) parse(fname string) (*graph, error) {
 		// If we are in the target function
 		if inTargetFunc {
 			switch cursor.Kind().Spelling() {
-			case "ParmDecl":
-				if !p.parseParmDecl(cursor) {
-					return clang.ChildVisit_Break
-				}
-			case "VarDecl":
-				if !p.parseVarDecl(cursor) {
-					return clang.ChildVisit_Break
-				}
 			case "DeclRefExpr":
 				if !p.parseDeclRefExpr(cursor) {
 					return clang.ChildVisit_Break
@@ -95,35 +86,19 @@ func (p *parser) parse(fname string) (*graph, error) {
 		return clang.ChildVisit_Recurse
 	})
 
-	fmt.Printf("%s %d %d ", fname, len(p.tokens), len(p.results))
-
 	// Source file traversal failed
 	if !buildOk {
 		return nil, fmt.Errorf("problem building graph for %s", fname)
 	}
+
+	p.graph.finalize()
+	fmt.Printf("%s %d ", fname, len(p.tokens))
 
 	return p.graph, nil
 }
 
 // Parser sub-functions for specific AST nodes
 // -----------------------------------------------------------------------------
-
-/*
-Parse function parameter declaration
-*/
-func (p *parser) parseParmDecl(cursor clang.Cursor) bool {
-	// TODO
-	return true
-}
-
-/*
-Parse variable declaration
-*/
-func (p *parser) parseVarDecl(cursor clang.Cursor) bool {
-	//ok := p.graph.addInternalNode(cursor.Spelling())
-	//return ok
-	return true
-}
 
 /*
 Parse reference to a declared expression
@@ -149,10 +124,10 @@ func (p *parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 			return false
 		}
 
-		// Push a non-leaf FUN token onto stack
+		// Push a non-leaf FUN token to the stack
 		p.pushNonLeafToken("FUN"+cursor.Spelling(), numParms)
 	} else { // It's a reference to a variable
-		// Push a leaf VAR token onto stack
+		// Push a leaf VAR token to the stack
 		p.pushLeafToken("VAR" + cursor.Spelling())
 		// Process the stack whenever a leaf token is pushed
 		p.processStack()
@@ -165,7 +140,7 @@ func (p *parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 Parse array expression
 */
 func (p *parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
-	// Push a non-leaf ARR token onto stack
+	// Push a non-leaf ARR token to the stack
 	p.pushNonLeafToken("ARR", 2)
 
 	return true
@@ -177,11 +152,13 @@ Parse literal
 func (p *parser) parseLiteral(cursor clang.Cursor) bool {
 	switch cursor.Kind().Spelling() {
 	case "IntegerLiteral":
-		p.pushLeafToken("INT" + cursor.LiteralSpelling())
+		p.pushLeafToken("CON" + cursor.LiteralSpelling())
 		// Process the stack whenever a leaf token is pushed
 		p.processStack()
 	case "FloatingLiteral":
-		p.pushLeafToken("FLT" + cursor.LiteralSpelling())
+		// Remove trailing zeros and decimal point, for example
+		// 1.200 becomes 1,2 and 3.0 become 3
+		p.pushLeafToken("CON" + strings.TrimRight(cursor.LiteralSpelling(), "0."))
 		// Process the stack whenever a leaf token is pushed
 		p.processStack()
 	}
@@ -217,52 +194,58 @@ func (p *parser) processStack() {
 		switch token[0:3] {
 		default:
 		case "ARR":
-			//name := args[0][3:]
-			//index, _ := strconv.Atoi(args[1][3:])
+			operand := p.graph.getNodeByName("ARR" + args[0][3:] + "[" + args[1][3:] + "]")
 
-			//fmt.Printf("%s[%d]\n", name, index)
-
-			p.pushResult(&node{})
+			p.pushLeafToken(operand.name)
 		case "BOP":
 			opcode := token[3:]
 
-			p.getOperand(args[0])
-			p.getOperand(args[1])
+			lOperand := p.graph.getNodeByName(args[0])
+			rOperand := p.graph.getNodeByName(args[1])
 
 			if opcode == "=" {
+				lOperand.receive(rOperand)
 			} else {
-				p.pushResult(&node{})
+				opNode := p.graph.addOperationNode(opcode)
+				opNode.receive(lOperand)
+				opNode.receive(rOperand)
+
+				p.pushLeafToken(opNode.name)
 			}
 		case "UOP":
 			opcode := token[3:]
 
 			if opcode == "-" {
-				p.getOperand(args[0])
+				operand := p.graph.getNodeByName(args[0])
 
-				p.pushResult(&node{})
+				opNode := p.graph.addOperationNode(opcode)
+				opNode.receive(operand)
+
+				p.pushLeafToken(opNode.name)
 			} else {
+				fmt.Println("parser error - only support - unary operator")
 			}
 		case "FUN":
+			funcName := strings.ToLower(token[3:])
 			numParms := len(args)
 
 			if numParms == 2 {
-				p.getOperand(args[0])
-				p.getOperand(args[1])
+				operand1 := p.graph.getNodeByName(args[0])
+				operand2 := p.graph.getNodeByName(args[1])
 
-				p.pushResult(&node{})
+				opNode := p.graph.addOperationNode(funcName)
+				opNode.receive(operand1)
+				opNode.receive(operand2)
+
+				p.pushLeafToken(opNode.name)
 			} else {
-				p.getOperand(args[0])
+				operand := p.graph.getNodeByName(args[0])
 
-				p.pushResult(&node{})
+				opNode := p.graph.addOperationNode(funcName)
+				opNode.receive(operand)
+
+				p.pushLeafToken(opNode.name)
 			}
 		}
 	}
-}
-
-func (p *parser) getOperand(token string) *node {
-	if token == "RESULT" {
-		return p.popResult()
-	}
-
-	return nil
 }
