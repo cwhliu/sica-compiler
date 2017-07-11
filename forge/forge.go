@@ -12,6 +12,8 @@ func (f *Forge) Parse(fname string) error {
 	} else {
 		fmt.Printf("Graph has %d nodes\n", g.numAllNodes())
 
+		g.outputDotFile()
+
 		return nil
 	}
 }
