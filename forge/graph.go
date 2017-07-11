@@ -1,56 +1,58 @@
 package forge
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"strconv"
 )
 
-type graph struct {
-	allNodes       map[string]*node
-	inputNodes     map[string]*node
-	outputNodes    map[string]*node
-	internalNodes  map[string]*node
-	operationNodes map[string]*node
-	constantNodes  map[string]*node
+type Graph struct {
+	allNodes       map[string]*Node
+	inputNodes     map[string]*Node
+	outputNodes    map[string]*Node
+	internalNodes  map[string]*Node
+	operationNodes map[string]*Node
+	constantNodes  map[string]*Node
 }
 
 /*
 Create and initialize a graph, and return a pointer to the graph
 */
-func createGraph() *graph {
-	g := &graph{}
+func createGraph() *Graph {
+	g := &Graph{}
 
-	g.allNodes = make(map[string]*node)
-	g.inputNodes = make(map[string]*node)
-	g.outputNodes = make(map[string]*node)
-	g.internalNodes = make(map[string]*node)
-	g.operationNodes = make(map[string]*node)
-	g.constantNodes = make(map[string]*node)
+	g.allNodes = make(map[string]*Node)
+	g.inputNodes = make(map[string]*Node)
+	g.outputNodes = make(map[string]*Node)
+	g.internalNodes = make(map[string]*Node)
+	g.operationNodes = make(map[string]*Node)
+	g.constantNodes = make(map[string]*Node)
 
 	return g
 }
 
+// -----------------------------------------------------------------------------
+
 /*
 Get the number of total nodes
 */
-func (g *graph) numAllNodes() int {
+func (g *Graph) numAllNodes() int {
 	return len(g.allNodes)
 }
+
+// -----------------------------------------------------------------------------
 
 /*
 Add an operation node to the graph
 */
-func (g *graph) addOperationNode(opString string) *node {
+func (g *Graph) addOperationNode(opString string) *Node {
 	name := "OPR" + strconv.Itoa(len(g.operationNodes))
 
-	if _, exist := nodeOpLUT[opString]; !exist {
+	if _, exist := NodeOpLUT[opString]; !exist {
 		fmt.Println("graph error - unsupported operation", opString)
 		return nil
 	}
 
-	newNode := &node{name: name, kind: operation, op: nodeOpLUT[opString]}
+	newNode := &Node{name: name, kind: NodeKind_Operation, op: NodeOpLUT[opString]}
 
 	g.allNodes[name] = newNode
 	g.operationNodes[name] = newNode
@@ -61,10 +63,10 @@ func (g *graph) addOperationNode(opString string) *node {
 /*
 Get a node by its name, create the node if it doesn't exist
 */
-func (g *graph) getNodeByName(name string) *node {
+func (g *Graph) getNodeByName(name string) *Node {
 	// Create a new node if a node with the same name does not exist
 	if _, exist := g.allNodes[name]; !exist {
-		var newNode *node
+		var newNode *Node
 
 		switch name[0:3] {
 		default:
@@ -74,12 +76,12 @@ func (g *graph) getNodeByName(name string) *node {
 			fmt.Println("graph error - should not create operation node here")
 			return nil
 		case "CON":
-			newNode = &node{name: name, kind: constant, op: equal}
+			newNode = &Node{name: name, kind: NodeKind_Constant, op: NodeOp_Equal}
 			g.constantNodes[name] = newNode
 		case "VAR", "ARR":
 			// Variable node created here has undetermined node kind because we don't
 			// know if it's an input, output, or internal node
-			newNode = &node{name: name, op: equal}
+			newNode = &Node{name: name, op: NodeOp_Equal}
 		}
 
 		g.allNodes[name] = newNode
@@ -91,10 +93,10 @@ func (g *graph) getNodeByName(name string) *node {
 /*
 Things need to be done before the graph can be used
 */
-func (g *graph) finalize() {
+func (g *Graph) finalize() {
 	// Determine node kind for variable nodes
 	for name, node := range g.allNodes {
-		if node.kind == undetermined {
+		if node.kind == NodeKind_Undetermined {
 			if node.numFanins() == 0 {
 				g.inputNodes[name] = node
 			} else if node.numFanouts() == 0 {
@@ -106,67 +108,19 @@ func (g *graph) finalize() {
 	}
 }
 
-// -----------------------------------------------------------------------------
+func (g *Graph) deleteNodeByName(name string) {
+  switch g.allNodes[name].kind {
+  case NodeKind_Input:
+    delete(g.inputNodes, name)
+  case NodeKind_Output:
+    delete(g.outputNodes, name)
+  case NodeKind_Internal:
+    delete(g.internalNodes, name)
+  case NodeKind_Operation:
+    delete(g.operationNodes, name)
+  case NodeKind_Constant:
+    delete(g.constantNodes, name)
+  }
 
-func (g *graph) outputDotFile() {
-	f, _ := os.Create("graph.dot")
-	defer f.Close()
-
-	w := bufio.NewWriter(f)
-
-	w.WriteString("digraph demo {\n")
-	w.WriteString("rankdir=TB\n")
-
-	// Input nodes
-	w.WriteString("{rank=min\n")
-	for _, node := range g.inputNodes {
-		label := node.name[3:]
-
-		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
-		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
-		w.WriteString(fmt.Sprintf(" fillcolor=deepskyblue label=\"%s\"]\n", label))
-	}
-	w.WriteString("}\n")
-
-	// Output nodes
-	w.WriteString("{rank=max\n")
-	for _, node := range g.outputNodes {
-		label := node.name[3:]
-
-		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
-		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
-		w.WriteString(fmt.Sprintf(" fillcolor=deepskyblue4 fontcolor=white label=\"%s\"]\n", label))
-	}
-	w.WriteString("}\n")
-
-	// Constant nodes
-	for _, node := range g.constantNodes {
-		label := node.name[3:]
-
-		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
-		w.WriteString(fmt.Sprintf("[shape=plaintext label=\"%s\"]\n", label))
-	}
-
-	// Operation nodes
-	for _, node := range g.operationNodes {
-		opString, _ := nodeOpStringLUT[node.op]
-
-		label := opString
-
-		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
-		w.WriteString(fmt.Sprintf("[shape=rect label=\"%s\"]\n", label))
-	}
-
-	// Edges
-	for _, node := range g.allNodes {
-		for i := 0; i < node.numFanins(); i++ {
-			fanin, _ := node.fanin(i)
-
-			w.WriteString(fmt.Sprintf("\"%s\" -> \"%s\"\n", fanin.name, node.name))
-		}
-	}
-
-	w.WriteString("}\n")
-
-	w.Flush()
+  delete(g.allNodes, name)
 }

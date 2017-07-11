@@ -1,86 +1,84 @@
 package forge
 
-type nodeKind int
+type NodeKind int
 
 const (
-	undetermined nodeKind = iota
-	input
-	output
-	internal
-	operation
-	constant
+	NodeKind_Undetermined NodeKind = iota
+	NodeKind_Input
+	NodeKind_Output
+	NodeKind_Internal
+	NodeKind_Operation
+	NodeKind_Constant
 )
 
-type nodeOp int
+type NodeOp int
 
 const (
-	nop nodeOp = iota
-	equal
-	add
-	sub
-	mul
-	div
-	power
-	sqrt
-	abs
-	exp
-	log
-	sin
-	cos
-	tan
-	arcsin
-	arccos
-	arctan
-	sinh
-	cosh
-	tanh
+	NodeOp_Nop NodeOp = iota
+	NodeOp_Equal
+	NodeOp_Add
+	NodeOp_Sub
+	NodeOp_Mul
+	NodeOp_Div
+	NodeOp_Power
+	NodeOp_Sqrt
+	NodeOp_Abs
+	NodeOp_Exp
+	NodeOp_Log
+	NodeOp_Sin
+	NodeOp_Cos
+	NodeOp_Tan
+	NodeOp_Arcsin
+	NodeOp_Arccos
+	NodeOp_Arctan
+	NodeOp_Sinh
+	NodeOp_Cosh
+	NodeOp_Tanh
 )
 
-var validNodeOp = make(map[string]bool)
-
-var nodeOpLUT = make(map[string]nodeOp)
-var nodeOpStringLUT = make(map[nodeOp]string)
+var NodeOpLUT = make(map[string]NodeOp)
+var NodeOpStringLUT = make(map[NodeOp]string)
 
 func init() {
-	nodeOpLUT[""] = nop
-	nodeOpLUT["="] = equal
-	nodeOpLUT["+"] = add
-	nodeOpLUT["-"] = sub
-	nodeOpLUT["*"] = mul
-	nodeOpLUT["/"] = div
-	nodeOpLUT["power"] = power
-	nodeOpLUT["sqrt"] = sqrt
-	nodeOpLUT["abs"] = abs
-	nodeOpLUT["exp"] = exp
-	nodeOpLUT["log"] = log
-	nodeOpLUT["sin"] = sin
-	nodeOpLUT["cos"] = cos
-	nodeOpLUT["tan"] = tan
-	nodeOpLUT["arcsin"] = arcsin
-	nodeOpLUT["arccos"] = arccos
-	nodeOpLUT["arctan"] = arctan
-	nodeOpLUT["sinh"] = sinh
-	nodeOpLUT["cosh"] = cosh
-	nodeOpLUT["tanh"] = tanh
+	NodeOpLUT[""] = NodeOp_Nop
+	NodeOpLUT["="] = NodeOp_Equal
+	NodeOpLUT["+"] = NodeOp_Add
+	NodeOpLUT["-"] = NodeOp_Sub
+	NodeOpLUT["*"] = NodeOp_Mul
+	NodeOpLUT["/"] = NodeOp_Div
+	NodeOpLUT["power"] = NodeOp_Power
+	NodeOpLUT["sqrt"] = NodeOp_Sqrt
+	NodeOpLUT["abs"] = NodeOp_Abs
+	NodeOpLUT["exp"] = NodeOp_Exp
+	NodeOpLUT["log"] = NodeOp_Log
+	NodeOpLUT["sin"] = NodeOp_Sin
+	NodeOpLUT["cos"] = NodeOp_Cos
+	NodeOpLUT["tan"] = NodeOp_Tan
+	NodeOpLUT["arcsin"] = NodeOp_Arcsin
+	NodeOpLUT["arccos"] = NodeOp_Arccos
+	NodeOpLUT["arctan"] = NodeOp_Arctan
+	NodeOpLUT["sinh"] = NodeOp_Sinh
+	NodeOpLUT["cosh"] = NodeOp_Cosh
+	NodeOpLUT["tanh"] = NodeOp_Tanh
 
-	nodeOpStringLUT[nop] = ""
-	nodeOpStringLUT[equal] = "="
-	nodeOpStringLUT[add] = "+"
-	nodeOpStringLUT[sub] = "-"
-	nodeOpStringLUT[mul] = "*"
-	nodeOpStringLUT[div] = "/"
-	nodeOpStringLUT[power] = "power"
-	nodeOpStringLUT[sqrt] = "sqrt"
-	nodeOpStringLUT[abs] = "abs"
-	nodeOpStringLUT[exp] = "exp"
-	nodeOpStringLUT[log] = "log"
-	nodeOpStringLUT[sin] = "sin"
-	nodeOpStringLUT[cos] = "cos"
-	nodeOpStringLUT[tan] = "tan"
-	nodeOpStringLUT[arcsin] = "arcsin"
-	nodeOpStringLUT[arccos] = "arccos"
-	nodeOpStringLUT[arctan] = "arctan"
-	nodeOpStringLUT[sinh] = "sinh"
-	nodeOpStringLUT[cosh] = "cosh"
-	nodeOpStringLUT[tanh] = "tanh"
+	NodeOpStringLUT[NodeOp_Nop] = ""
+	NodeOpStringLUT[NodeOp_Equal] = "="
+	NodeOpStringLUT[NodeOp_Add] = "+"
+	NodeOpStringLUT[NodeOp_Sub] = "-"
+	NodeOpStringLUT[NodeOp_Mul] = "*"
+	NodeOpStringLUT[NodeOp_Div] = "/"
+	NodeOpStringLUT[NodeOp_Power] = "power"
+	NodeOpStringLUT[NodeOp_Sqrt] = "sqrt"
+	NodeOpStringLUT[NodeOp_Abs] = "abs"
+	NodeOpStringLUT[NodeOp_Exp] = "exp"
+	NodeOpStringLUT[NodeOp_Log] = "log"
+	NodeOpStringLUT[NodeOp_Sin] = "sin"
+	NodeOpStringLUT[NodeOp_Cos] = "cos"
+	NodeOpStringLUT[NodeOp_Tan] = "tan"
+	NodeOpStringLUT[NodeOp_Arcsin] = "arcsin"
+	NodeOpStringLUT[NodeOp_Arccos] = "arccos"
+	NodeOpStringLUT[NodeOp_Arctan] = "arctan"
+	NodeOpStringLUT[NodeOp_Sinh] = "sinh"
+	NodeOpStringLUT[NodeOp_Cosh] = "cosh"
+	NodeOpStringLUT[NodeOp_Tanh] = "tanh"
 }

@@ -7,16 +7,16 @@ import (
 	"github.com/cwhliu/go-clang/clang"
 )
 
-type parser struct {
-	parserStack
+type Parser struct {
+	ParserStack
 
-	graph *graph
+	graph *Graph
 }
 
 /*
 Parse a MEX cc file and build a corresponding graph
 */
-func (p *parser) parse(fname string) (*graph, error) {
+func (p *Parser) parse(fname string) (*Graph, error) {
 	p.graph = createGraph()
 
 	// Create a new index to store translation units
@@ -103,7 +103,7 @@ func (p *parser) parse(fname string) (*graph, error) {
 /*
 Parse reference to a declared expression
 */
-func (p *parser) parseDeclRefExpr(cursor clang.Cursor) bool {
+func (p *Parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 	cursorType := cursor.Type().Spelling()
 
 	// It's a reference to a function
@@ -139,7 +139,7 @@ func (p *parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 /*
 Parse array expression
 */
-func (p *parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
+func (p *Parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
 	// Push a non-leaf ARR token to the stack
 	p.pushNonLeafToken("ARR", 2)
 
@@ -149,7 +149,7 @@ func (p *parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
 /*
 Parse literal
 */
-func (p *parser) parseLiteral(cursor clang.Cursor) bool {
+func (p *Parser) parseLiteral(cursor clang.Cursor) bool {
 	switch cursor.Kind().Spelling() {
 	case "IntegerLiteral":
 		p.pushLeafToken("CON" + cursor.LiteralSpelling())
@@ -169,7 +169,7 @@ func (p *parser) parseLiteral(cursor clang.Cursor) bool {
 /*
 Parse operator
 */
-func (p *parser) parseOperator(cursor clang.Cursor) bool {
+func (p *Parser) parseOperator(cursor clang.Cursor) bool {
 	switch cursor.Kind().Spelling() {
 	case "UnaryOperator":
 		p.pushNonLeafToken("UOP"+cursor.OperatorSpelling(), 1)
@@ -182,7 +182,7 @@ func (p *parser) parseOperator(cursor clang.Cursor) bool {
 
 // -----------------------------------------------------------------------------
 
-func (p *parser) processStack() {
+func (p *Parser) processStack() {
 	// Loop whenever a token is ready to be popped
 	for p.tokenReady() {
 		// Pop the token and its arguments from the stack
