@@ -14,6 +14,8 @@ type Graph struct {
 	constantNodes  map[string]*Node
 }
 
+// -----------------------------------------------------------------------------
+
 /*
 Create and initialize a graph, and return a pointer to the graph
 */
@@ -28,6 +30,24 @@ func CreateGraph() *Graph {
 	g.constantNodes = make(map[string]*Node)
 
 	return g
+}
+
+/*
+Update undetermined node types after the graph is built
+*/
+func (g *Graph) UpdateNodeType() {
+	// Determine node kind for variable nodes
+	for name, node := range g.allNodes {
+		if node.kind == NodeKind_Undetermined {
+			if node.NumFanins() == 0 {
+				g.inputNodes[name] = node
+			} else if node.NumFanouts() == 0 {
+				g.outputNodes[name] = node
+			} else {
+				g.internalNodes[name] = node
+			}
+		}
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -91,23 +111,8 @@ func (g *Graph) GetNodeByName(name string) *Node {
 }
 
 /*
-Things need to be done before the graph can be used
+Delete a node by its name
 */
-func (g *Graph) Finalize() {
-	// Determine node kind for variable nodes
-	for name, node := range g.allNodes {
-		if node.kind == NodeKind_Undetermined {
-			if node.NumFanins() == 0 {
-				g.inputNodes[name] = node
-			} else if node.NumFanouts() == 0 {
-				g.outputNodes[name] = node
-			} else {
-				g.internalNodes[name] = node
-			}
-		}
-	}
-}
-
 func (g *Graph) DeleteNodeByName(name string) {
 	switch g.allNodes[name].kind {
 	case NodeKind_Input:
@@ -123,4 +128,35 @@ func (g *Graph) DeleteNodeByName(name string) {
 	}
 
 	delete(g.allNodes, name)
+}
+
+// -----------------------------------------------------------------------------
+
+func (g *Graph) Levelize() {
+	for _, node := range g.allNodes {
+		node.level = -1
+	}
+
+	var levelize func(n *Node)
+	levelize = func(n *Node) {
+		if n.kind == NodeKind_Input || n.kind == NodeKind_Constant {
+			n.level = 0
+		} else {
+			max := -1000
+
+			for _, fi := range n.fanins {
+				levelize(fi)
+
+				if fi.level > max {
+					max = fi.level
+				}
+			}
+
+			n.level = max + 1
+		}
+	}
+
+	for _, node := range g.outputNodes {
+		levelize(node)
+	}
 }

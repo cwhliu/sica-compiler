@@ -91,7 +91,8 @@ func (p *Parser) Parse(fname string) (*Graph, error) {
 		return nil, fmt.Errorf("problem building graph for %s", fname)
 	}
 
-	p.graph.Finalize()
+	p.graph.UpdateNodeType()
+
 	fmt.Printf("%s %d ", fname, len(p.tokens))
 
 	return p.graph, nil

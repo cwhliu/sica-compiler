@@ -3,9 +3,10 @@ package forge
 import "fmt"
 
 type Node struct {
-	name string
-	kind NodeKind
-	op   NodeOp
+	name  string
+	kind  NodeKind
+	op    NodeOp
+	level int
 
 	fanins  []*Node
 	fanouts []*Node

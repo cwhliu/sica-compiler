@@ -20,3 +20,33 @@ func (g *Graph) OptDeleteInternalNodes() {
 		g.DeleteNodeByName(name)
 	}
 }
+
+func (g *Graph) OptValueNumbering() {
+	vnMap := make(map[string]*Node)
+
+	for name, node := range g.operationNodes {
+		vnKey := NodeOpStringLUT[node.op]
+		for _, fi := range node.fanins {
+			vnKey += fi.name
+		}
+
+		if vnNode, exist := vnMap[vnKey]; !exist {
+			//fmt.Println("new", name, vnKey)
+
+			vnMap[vnKey] = node
+		} else {
+			//fmt.Println("Reuse", name, vnKey)
+
+			for _, fi := range node.fanins {
+				fi.RemoveFanout(node)
+			}
+
+			for _, fo := range node.fanouts {
+				vnNode.AddFanout(fo)
+				fo.ReplaceFanin(node, vnNode)
+			}
+
+			g.DeleteNodeByName(name)
+		}
+	}
+}

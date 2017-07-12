@@ -48,6 +48,7 @@ func (g *Graph) OutputDotFile() {
 	// Operation nodes
 	for _, node := range g.operationNodes {
 		opString, _ := NodeOpStringLUT[node.op]
+		opString += node.name
 
 		label := opString
 
