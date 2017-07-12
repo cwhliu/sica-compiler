@@ -2,6 +2,9 @@ package forge
 
 import "fmt"
 
+/*
+Delete all internal nodes created in the source file to hold temporary results
+*/
 func (g *Graph) OptDeleteInternalNodes() {
 	for name, node := range g.internalNodes {
 		if node.NumFanins() != 1 {
@@ -21,21 +24,44 @@ func (g *Graph) OptDeleteInternalNodes() {
 	}
 }
 
+/*
+Eliminate duplicated operations using value numbering
+
+The graph must be levelized and value numbering needs to start from inputs,
+otherwise a duplicated operation will not be eliminated when its fanout is
+processed before it (this happens if loop over a map because map is not ordered)
+
+See "Engineering a Compiler 2nd Edition, section 8.4.1"
+*/
 func (g *Graph) OptValueNumbering() {
+	// Levelize the graph
+	g.Levelize()
+
+	// Use a priority queue to sort operation nodes by level
+	pq := CreateNodePQ()
+	for _, node := range g.operationNodes {
+		pq.Push(node)
+	}
+
+	// This map acts as a hash holding value numbers
 	vnMap := make(map[string]*Node)
 
-	for name, node := range g.operationNodes {
+	for pq.Len() > 1 {
+		node := pq.PopMin()
+
+		// Construct the value number for this operation
+		// Here we're not using fanin's value number but their name, this is
+		// sub-optimal but much easier
 		vnKey := NodeOpStringLUT[node.op]
 		for _, fi := range node.fanins {
 			vnKey += fi.name
 		}
 
 		if vnNode, exist := vnMap[vnKey]; !exist {
-			//fmt.Println("new", name, vnKey)
-
+			// Store the operation if it does not exist
 			vnMap[vnKey] = node
 		} else {
-			//fmt.Println("Reuse", name, vnKey)
+			// Otherwise replace the operation with the existing one
 
 			for _, fi := range node.fanins {
 				fi.RemoveFanout(node)
@@ -46,7 +72,7 @@ func (g *Graph) OptValueNumbering() {
 				fo.ReplaceFanin(node, vnNode)
 			}
 
-			g.DeleteNodeByName(name)
+			g.DeleteNodeByName(node.name)
 		}
 	}
 }

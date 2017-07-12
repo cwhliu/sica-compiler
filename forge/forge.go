@@ -11,7 +11,7 @@ func (f *Forge) Parse(fname string) error {
 		return err
 	} else {
 		g.OptDeleteInternalNodes()
-		//g.OptValueNumbering()
+		g.OptValueNumbering()
 
 		fmt.Printf("Graph has %d nodes\n", g.NumAllNodes())
 
