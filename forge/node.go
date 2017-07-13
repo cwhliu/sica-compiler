@@ -12,9 +12,7 @@ type Node struct {
 	fanouts []*Node
 }
 
-func (n *Node) Index() int {
-	return n.level
-}
+func (n *Node) Index() int { return n.level }
 
 // -----------------------------------------------------------------------------
 
@@ -23,9 +21,9 @@ Node n receives node fi as a fanin
 */
 func (n *Node) Receive(fi *Node) {
 	// Set fi to be n's fanin
-	n.fanins = append(n.fanins, fi)
+	n.AddFanin(fi)
 	// Set n to be fi's fanout
-	fi.fanouts = append(fi.fanouts, n)
+	fi.AddFanout(n)
 }
 
 // Fanins
@@ -34,16 +32,12 @@ func (n *Node) Receive(fi *Node) {
 /*
 Add node fi to node n's fanin list
 */
-func (n *Node) AddFanin(fi *Node) {
-	n.fanins = append(n.fanins, fi)
-}
+func (n *Node) AddFanin(fi *Node) { n.fanins = append(n.fanins, fi) }
 
 /*
 Get the number of fanin nodes
 */
-func (n *Node) NumFanins() int {
-	return len(n.fanins)
-}
+func (n *Node) NumFanins() int { return len(n.fanins) }
 
 /*
 Get the fanin node at the given index
@@ -86,16 +80,12 @@ func (n *Node) ReplaceFanin(oldFi, newFi *Node) {
 /*
 Add node fo to node n's fanout list
 */
-func (n *Node) AddFanout(fo *Node) {
-	n.fanouts = append(n.fanouts, fo)
-}
+func (n *Node) AddFanout(fo *Node) { n.fanouts = append(n.fanouts, fo) }
 
 /*
 Get the number of fanout nodes
 */
-func (n *Node) NumFanouts() int {
-	return len(n.fanouts)
-}
+func (n *Node) NumFanouts() int { return len(n.fanouts) }
 
 /*
 Get the fanout node at the given index

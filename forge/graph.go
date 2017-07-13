@@ -52,12 +52,12 @@ func (g *Graph) UpdateNodeType() {
 
 // -----------------------------------------------------------------------------
 
-/*
-Get the number of total nodes
-*/
-func (g *Graph) NumAllNodes() int {
-	return len(g.allNodes)
-}
+func (g *Graph) NumAllNodes() int       { return len(g.allNodes) }
+func (g *Graph) NumInputNodes() int     { return len(g.inputNodes) }
+func (g *Graph) NumOutputNodes() int    { return len(g.outputNodes) }
+func (g *Graph) NumInternalNodes() int  { return len(g.internalNodes) }
+func (g *Graph) NumOperationNodes() int { return len(g.operationNodes) }
+func (g *Graph) NumConstantNodes() int  { return len(g.constantNodes) }
 
 // -----------------------------------------------------------------------------
 
