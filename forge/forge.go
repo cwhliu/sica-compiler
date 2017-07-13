@@ -12,6 +12,7 @@ func (f *Forge) Parse(fname string) error {
 	} else {
 		g.OptimizeInternalNodes()
 		g.OptimizeValueNumbering()
+		g.OptimizeTreeHeight()
 
 		fmt.Printf("Graph has %d nodes\n", g.NumAllNodes())
 

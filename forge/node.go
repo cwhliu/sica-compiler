@@ -1,7 +1,5 @@
 package forge
 
-import "fmt"
-
 type Node struct {
 	name  string
 	kind  NodeKind
@@ -40,12 +38,8 @@ func (n *Node) NumFanins() int { return len(n.fanins) }
 /*
 Get the fanin node at the given index
 */
-func (n *Node) Fanin(index int) (*Node, error) {
-	if index < 0 || index >= len(n.fanins) {
-		return nil, fmt.Errorf("node %s has no fanin[%d]", n.name, index)
-	}
-
-	return n.fanins[index], nil
+func (n *Node) Fanin(index int) *Node {
+	return n.fanins[index]
 }
 
 /*
@@ -88,12 +82,8 @@ func (n *Node) NumFanouts() int { return len(n.fanouts) }
 /*
 Get the fanout node at the given index
 */
-func (n *Node) Fanout(index int) (*Node, error) {
-	if index < 0 || index >= len(n.fanouts) {
-		return nil, fmt.Errorf("node %s has no fanout[%d]", n.name, index)
-	}
-
-	return n.fanouts[index], nil
+func (n *Node) Fanout(index int) *Node {
+	return n.fanouts[index]
 }
 
 /*

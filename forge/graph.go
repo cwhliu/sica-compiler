@@ -132,7 +132,9 @@ func (g *Graph) DeleteNodeByName(name string) {
 
 // -----------------------------------------------------------------------------
 
-func (g *Graph) Levelize() {
+func (g *Graph) Levelize() int {
+	var maxLevel int = -10
+
 	for _, node := range g.allNodes {
 		node.level = -1
 	}
@@ -153,10 +155,16 @@ func (g *Graph) Levelize() {
 			}
 
 			n.level = max + 1
+
+			if n.level > maxLevel {
+				maxLevel = n.level
+			}
 		}
 	}
 
 	for _, node := range g.outputNodes {
 		levelize(node)
 	}
+
+	return maxLevel
 }

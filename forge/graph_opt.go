@@ -12,7 +12,7 @@ func (g *Graph) OptimizeInternalNodes() {
 			return
 		}
 
-		fi, _ := node.Fanin(0)
+		fi := node.Fanin(0)
 		fi.RemoveFanout(node)
 
 		for _, fo := range node.fanouts {
@@ -78,4 +78,104 @@ func (g *Graph) OptimizeValueNumbering() {
 }
 
 func (g *Graph) OptimizeTreeHeight() {
+	roots := CreateNodePQ()
+	ranks := make(map[*Node]int)
+
+	for _, node := range g.allNodes {
+		ranks[node] = -1
+	}
+
+	for _, node := range g.operationNodes {
+		if node.op == NodeOp_Add {
+			if node.NumFanouts() > 1 ||
+				node.NumFanouts() == 1 && node.op != node.Fanout(0).op {
+				roots.Push(NodePQEntry{node, 1})
+			}
+		}
+	}
+
+	var balance func(n *Node)
+	balance = func(n *Node) {
+		if ranks[n] >= 0 {
+			return
+		}
+
+		q := CreateNodePQ()
+		r := []*Node{}
+
+		var flatten func(n *Node, op NodeOp) int
+		var rebuild func(n *Node)
+
+		flatten = func(n *Node, op NodeOp) int {
+			if n.kind == NodeKind_Constant {
+				ranks[n] = 0
+				q.Push(NodePQEntry{n, ranks[n]})
+			} else if n.kind == NodeKind_Input || n.op != op {
+				ranks[n] = 1
+				q.Push(NodePQEntry{n, ranks[n]})
+			} else if exist := roots.FindNode(n); exist {
+				balance(n)
+				q.Push(NodePQEntry{n, ranks[n]})
+			} else {
+				ranks[n] = flatten(n.Fanin(0), n.op) + flatten(n.Fanin(1), n.op)
+				r = append(r, n)
+			}
+
+			return ranks[n]
+		}
+
+		rebuild = func(n *Node) {
+			if q.Len() == 2 {
+				return
+			}
+
+			for n.NumFanins() > 0 {
+				n.Fanin(0).RemoveFanout(n)
+				n.RemoveFanin(n.Fanin(0))
+			}
+
+			for _, node := range r {
+				for node.NumFanins() > 0 {
+					node.Fanin(0).RemoveFanout(node)
+					node.RemoveFanin(node.Fanin(0))
+				}
+				for node.NumFanouts() > 0 {
+					node.Fanout(0).RemoveFanin(node)
+					node.RemoveFanout(node.Fanout(0))
+				}
+			}
+
+			for q.Len() > 0 {
+				var nodeL *Node = q.PopMin()
+				var nodeR *Node = q.PopMin()
+				var nodeT *Node
+
+				if q.Len() == 0 {
+					nodeT = n
+				} else {
+					nodeT, r = r[len(r)-1], r[:len(r)-1]
+				}
+
+				nodeL.AddFanout(nodeT)
+				nodeR.AddFanout(nodeT)
+
+				nodeT.AddFanin(nodeL)
+				nodeT.AddFanin(nodeR)
+
+				ranks[nodeT] = ranks[nodeL] + ranks[nodeR]
+
+				if q.Len() != 0 {
+					q.Push(NodePQEntry{nodeT, ranks[nodeT]})
+				}
+			}
+		}
+
+		ranks[n] = flatten(n.Fanin(0), n.op) + flatten(n.Fanin(1), n.op)
+
+		rebuild(n)
+	}
+
+	for roots.Len() > 0 {
+		balance(roots.PopMin())
+	}
 }

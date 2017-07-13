@@ -59,7 +59,7 @@ func (g *Graph) OutputDotFile() {
 	// Edges
 	for _, node := range g.allNodes {
 		for i := 0; i < node.NumFanins(); i++ {
-			fanin, _ := node.Fanin(i)
+			fanin := node.Fanin(i)
 
 			w.WriteString(fmt.Sprintf("\"%s\" -> \"%s\"\n", fanin.name, node.name))
 		}
