@@ -12,8 +12,6 @@ type Node struct {
 	fanouts []*Node
 }
 
-func (n *Node) Index() int { return n.level }
-
 // -----------------------------------------------------------------------------
 
 /*

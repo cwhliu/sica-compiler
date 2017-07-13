@@ -21,28 +21,39 @@ func CreateNodePQ() *NodePQ {
 
 func (PQ *NodePQ) Len() int { return PQ.pq.Len() }
 
-func (PQ *NodePQ) Push(n *Node) { heap.Push(PQ.pq, n) }
+func (PQ *NodePQ) Push(n NodePQEntry) { heap.Push(PQ.pq, n) }
 
-func (PQ *NodePQ) PopMin() *Node { return heap.Pop(PQ.pq).(*Node) }
+func (PQ *NodePQ) PopMin() *Node {
+	return heap.Pop(PQ.pq).(NodePQEntry).node
+}
 
-func (PQ *NodePQ) PopMax() *Node { return heap.Remove(PQ.pq, PQ.pq.Len()-1).(*Node) }
+func (PQ *NodePQ) PopMax() *Node {
+	return heap.Remove(PQ.pq, PQ.pq.Len()-1).(NodePQEntry).node
+}
 
-func (PQ *NodePQ) GetNodeByIndex(index int) *Node { return (*PQ.pq)[index] }
+func (PQ *NodePQ) GetNodeByIndex(index int) *Node {
+	return (*PQ.pq)[index].node
+}
 
 // Underlying heap container
 //  Code adapted from Go's heap package documentation
 // -----------------------------------------------------------------------------
 
-type nodePQ []*Node
+type NodePQEntry struct {
+	node     *Node
+	priority int
+}
+
+type nodePQ []NodePQEntry
 
 func (pq nodePQ) Len() int { return len(pq) }
 
-func (pq nodePQ) Less(i, j int) bool { return pq[i].Index() < pq[j].Index() }
+func (pq nodePQ) Less(i, j int) bool { return pq[i].priority < pq[j].priority }
 
 func (pq nodePQ) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
 
 func (pq *nodePQ) Push(x interface{}) {
-	node := x.(*Node)
+	node := x.(NodePQEntry)
 	*pq = append(*pq, node)
 }
 

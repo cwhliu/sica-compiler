@@ -5,7 +5,7 @@ import "fmt"
 /*
 Delete all internal nodes created in the source file to hold temporary results
 */
-func (g *Graph) OptDeleteInternalNodes() {
+func (g *Graph) OptimizeInternalNodes() {
 	for name, node := range g.internalNodes {
 		if node.NumFanins() != 1 {
 			fmt.Println("optimizer error - internal nodes should have single fanin")
@@ -33,14 +33,14 @@ processed before it (this happens if loop over a map because map is not ordered)
 
 See "Engineering a Compiler 2nd Edition, section 8.4.1"
 */
-func (g *Graph) OptValueNumbering() {
+func (g *Graph) OptimizeValueNumbering() {
 	// Levelize the graph
 	g.Levelize()
 
 	// Use a priority queue to sort operation nodes by level
 	pq := CreateNodePQ()
 	for _, node := range g.operationNodes {
-		pq.Push(node)
+		pq.Push(NodePQEntry{node, node.level})
 	}
 
 	// This map acts as a hash holding value numbers
@@ -75,4 +75,7 @@ func (g *Graph) OptValueNumbering() {
 			g.DeleteNodeByName(node.name)
 		}
 	}
+}
+
+func (g *Graph) OptimizeTreeHeight() {
 }
