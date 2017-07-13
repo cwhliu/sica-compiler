@@ -40,10 +40,13 @@ func (g *Graph) UpdateNodeType() {
 	for name, node := range g.allNodes {
 		if node.kind == NodeKind_Undetermined {
 			if node.NumFanins() == 0 {
+				node.kind = NodeKind_Input
 				g.inputNodes[name] = node
 			} else if node.NumFanouts() == 0 {
+				node.kind = NodeKind_Output
 				g.outputNodes[name] = node
 			} else {
+				node.kind = NodeKind_Internal
 				g.internalNodes[name] = node
 			}
 		}
