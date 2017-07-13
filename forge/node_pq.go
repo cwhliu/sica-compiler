@@ -35,6 +35,16 @@ func (PQ *NodePQ) GetNodeByIndex(index int) *Node {
 	return (*PQ.pq)[index].node
 }
 
+func (PQ *NodePQ) FindNode(node *Node) bool {
+	for _, entry := range *PQ.pq {
+		if entry.node == node {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Underlying heap container
 //  Code adapted from Go's heap package documentation
 // -----------------------------------------------------------------------------
