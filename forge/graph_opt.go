@@ -1,31 +1,5 @@
 package forge
 
-import (
-	"fmt"
-)
-
-/*
-Delete all internal nodes created in the source file to hold temporary results
-*/
-func (g *Graph) OptimizeInternalNodes() {
-	for name, node := range g.internalNodes {
-		if node.NumFanins() != 1 {
-			fmt.Println("optimizer error - internal nodes should have single fanin")
-			return
-		}
-
-		fi := node.Fanin(0)
-		fi.RemoveFanout(node)
-
-		for _, fo := range node.fanouts {
-			fi.AddFanout(fo)
-			fo.ReplaceFanin(node, fi)
-		}
-
-		g.DeleteNodeByName(name)
-	}
-}
-
 /*
 Eliminate duplicated operations using value numbering
 

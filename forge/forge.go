@@ -10,7 +10,6 @@ func (f *Forge) Parse(fname string) error {
 	if g, err := f.parser.Parse(fname); err != nil {
 		return err
 	} else {
-		g.OptimizeInternalNodes()
 		g.OptimizeValueNumbering()
 		g.OptimizeTreeHeight()
 

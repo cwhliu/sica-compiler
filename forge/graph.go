@@ -9,7 +9,6 @@ type Graph struct {
 	allNodes       map[string]*Node
 	inputNodes     map[string]*Node
 	outputNodes    map[string]*Node
-	internalNodes  map[string]*Node
 	operationNodes map[string]*Node
 	constantNodes  map[string]*Node
 }
@@ -25,7 +24,6 @@ func CreateGraph() *Graph {
 	g.allNodes = make(map[string]*Node)
 	g.inputNodes = make(map[string]*Node)
 	g.outputNodes = make(map[string]*Node)
-	g.internalNodes = make(map[string]*Node)
 	g.operationNodes = make(map[string]*Node)
 	g.constantNodes = make(map[string]*Node)
 
@@ -33,21 +31,32 @@ func CreateGraph() *Graph {
 }
 
 /*
-Update undetermined node types after the graph is built
+Call this function to legitimate the graph after nodes are added to the graph
 */
-func (g *Graph) UpdateNodeType() {
-	// Determine node kind for variable nodes
+func (g *Graph) Legitimate() {
+	// Finalize node kind for undetermined nodes
 	for name, node := range g.allNodes {
 		if node.kind == NodeKind_Undetermined {
 			if node.NumFanins() == 0 {
+				// An undetermined node without fanin is an input to the graph
 				node.kind = NodeKind_Input
 				g.inputNodes[name] = node
 			} else if node.NumFanouts() == 0 {
+				// An undetermined node without fanout is an output of the graph
 				node.kind = NodeKind_Output
 				g.outputNodes[name] = node
 			} else {
-				node.kind = NodeKind_Internal
-				g.internalNodes[name] = node
+				// Otherwise it's an internal node created in the source file
+				// We don't need them so delete these nodes here
+				fi := node.Fanin(0)
+				fi.RemoveFanout(node)
+
+				for _, fo := range node.fanouts {
+					fi.AddFanout(fo)
+					fo.ReplaceFanin(node, fi)
+				}
+
+				g.DeleteNodeByName(name)
 			}
 		}
 	}
@@ -58,7 +67,6 @@ func (g *Graph) UpdateNodeType() {
 func (g *Graph) NumAllNodes() int       { return len(g.allNodes) }
 func (g *Graph) NumInputNodes() int     { return len(g.inputNodes) }
 func (g *Graph) NumOutputNodes() int    { return len(g.outputNodes) }
-func (g *Graph) NumInternalNodes() int  { return len(g.internalNodes) }
 func (g *Graph) NumOperationNodes() int { return len(g.operationNodes) }
 func (g *Graph) NumConstantNodes() int  { return len(g.constantNodes) }
 
@@ -122,8 +130,6 @@ func (g *Graph) DeleteNodeByName(name string) {
 		delete(g.inputNodes, name)
 	case NodeKind_Output:
 		delete(g.outputNodes, name)
-	case NodeKind_Internal:
-		delete(g.internalNodes, name)
 	case NodeKind_Operation:
 		delete(g.operationNodes, name)
 	case NodeKind_Constant:
