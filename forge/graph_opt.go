@@ -1,6 +1,8 @@
 package forge
 
-import "fmt"
+import (
+	"fmt"
+)
 
 /*
 Delete all internal nodes created in the source file to hold temporary results
@@ -62,7 +64,6 @@ func (g *Graph) OptimizeValueNumbering() {
 			vnMap[vnKey] = node
 		} else {
 			// Otherwise replace the operation with the existing one
-
 			for _, fi := range node.fanins {
 				fi.RemoveFanout(node)
 			}
@@ -77,64 +78,124 @@ func (g *Graph) OptimizeValueNumbering() {
 	}
 }
 
-func (g *Graph) OptimizeTreeHeight() {
-	roots := CreateNodePQ()
-	ranks := make(map[*Node]int)
+/*
+Optimize tree height in the graph by balancing a skewed trees in two phases
+ The first phase identifies candidate tree roots
+ The second phase finds all the operands for a candidate tree and build a
+ balanced tree for them
 
+See "Engineering a Compiler 2nd Edition, section 8.4.2"
+*/
+func (g *Graph) OptimizeTreeHeight() {
+
+	// Phase 1 - analysis
+	// ---------------------------------------------------------------------------
+
+	// Sort candidate roots by their operation precedence
+	candidateRoots := CreateNodePQ()
+
+	// Store nodes' rank, -1 means not processed yet
+	// A node's rank is used to build a balanced tree (approximately)
+	ranks := make(map[*Node]int)
 	for _, node := range g.allNodes {
 		ranks[node] = -1
 	}
 
+	// Find candidate tree roots
 	for _, node := range g.operationNodes {
-		if node.op == NodeOp_Add {
-			if node.NumFanouts() > 1 ||
-				node.NumFanouts() == 1 && node.op != node.Fanout(0).op {
-				roots.Push(NodePQEntry{node, 1})
+		// A node is a candidate root if it has multiple fanouts or it's fanout has
+		// different operation than its own
+		if node.NumFanouts() > 1 ||
+			node.NumFanouts() == 1 && node.op != node.Fanout(0).op {
+			if node.op == NodeOp_Add {
+				candidateRoots.Push(NodePQEntry{node, 1}) // let add have precedence of 1
 			}
 		}
 	}
 
+	// Phase 2 - transformation
+	// ---------------------------------------------------------------------------
+
 	var balance func(n *Node)
-	balance = func(n *Node) {
-		if ranks[n] >= 0 {
+
+	// Defer invocations of the function balance to the end when it's defined
+	defer func() {
+		for candidateRoots.Len() > 0 {
+			balance(candidateRoots.PopMin())
+		}
+	}()
+
+	/*
+		This function finds all the operands for a root node (by recursively calling
+		flatten) and build a balanced tree for them (by calling rebuild)
+	*/
+	balance = func(root *Node) {
+		if ranks[root] >= 0 { // this tree is already processed
 			return
 		}
 
-		q := CreateNodePQ()
-		r := []*Node{}
+		// Store all the operands for the given root node
+		operandNodes := CreateNodePQ()
+		// Collect all the operations along the traversal, and later on rebuild the
+		// tree using these nodes
+		operationNodes := []*Node{}
 
 		var flatten func(n *Node, op NodeOp) int
 		var rebuild func(n *Node)
 
+		defer func() {
+			// Recursively collect all operands
+			ranks[root] = flatten(root.Fanin(0), root.op) + flatten(root.Fanin(1), root.op)
+			// Build a balanced tree for this tree root
+			rebuild(root)
+		}()
+
+		/*
+		   Find all operands for a sub-tree starting with node n
+		*/
 		flatten = func(n *Node, op NodeOp) int {
-			if n.kind == NodeKind_Constant {
+			if ranks[n] >= 0 {
+				// This node is already processed, so it becomes an operand
+				operandNodes.Push(NodePQEntry{n, ranks[n]})
+			} else if n.kind == NodeKind_Constant {
+				// A constant has rank 0 and it's an operand
 				ranks[n] = 0
-				q.Push(NodePQEntry{n, ranks[n]})
+				operandNodes.Push(NodePQEntry{n, ranks[n]})
 			} else if n.kind == NodeKind_Input || n.op != op {
+				// Reach the boundary of the sub-tree, either input or a node with
+				// different operation, and it's an operand
 				ranks[n] = 1
-				q.Push(NodePQEntry{n, ranks[n]})
-			} else if exist := roots.FindNode(n); exist {
+				operandNodes.Push(NodePQEntry{n, ranks[n]})
+			} else if exist := candidateRoots.FindNode(n); exist {
+				// If the node is also a candidate tree root, build it recursively and
+				// it becomes an operand
 				balance(n)
-				q.Push(NodePQEntry{n, ranks[n]})
+				operandNodes.Push(NodePQEntry{n, ranks[n]})
 			} else {
+				// An internal node in a sub-tree, recursively find its operands
 				ranks[n] = flatten(n.Fanin(0), n.op) + flatten(n.Fanin(1), n.op)
-				r = append(r, n)
+				operationNodes = append(operationNodes, n)
 			}
 
 			return ranks[n]
 		}
 
-		rebuild = func(n *Node) {
-			if q.Len() == 2 {
+		/*
+		   Build a balanced tree for a tree starting with the given root node
+		*/
+		rebuild = func(root *Node) {
+			// Two operands mean there's only one operation, so no need to rebuild
+			if operandNodes.Len() == 2 {
 				return
 			}
 
-			for n.NumFanins() > 0 {
-				n.Fanin(0).RemoveFanout(n)
-				n.RemoveFanin(n.Fanin(0))
+			// Disconnect the root from its fanins
+			for root.NumFanins() > 0 {
+				root.Fanin(0).RemoveFanout(root)
+				root.RemoveFanin(root.Fanin(0))
 			}
-
-			for _, node := range r {
+			// Disconnect operation nodes from their fanins and fanouts
+			for _, node := range operationNodes {
 				for node.NumFanins() > 0 {
 					node.Fanin(0).RemoveFanout(node)
 					node.RemoveFanin(node.Fanin(0))
@@ -145,37 +206,37 @@ func (g *Graph) OptimizeTreeHeight() {
 				}
 			}
 
-			for q.Len() > 0 {
-				var nodeL *Node = q.PopMin()
-				var nodeR *Node = q.PopMin()
-				var nodeT *Node
+			// At this point, we have a bunch of operands (in operandNodes) and a
+			// bunch of operation nodes (in operationNodes and also root), now let's
+			// build a balanced tree using these operation nodes for the operands
 
-				if q.Len() == 0 {
-					nodeT = n
+			for operandNodes.Len() > 0 {
+				// Combine operands with the lowest ranks in the queue
+				var nodeL *Node = operandNodes.PopMin()
+				var nodeR *Node = operandNodes.PopMin()
+
+				var nodeT *Node
+				if operandNodes.Len() == 0 {
+					// We've reached the root
+					nodeT = root
 				} else {
-					nodeT, r = r[len(r)-1], r[:len(r)-1]
+					// Pop one operation node
+					nodeT = operationNodes[len(operationNodes)-1]
+					operationNodes = operationNodes[:len(operationNodes)-1]
 				}
 
-				nodeL.AddFanout(nodeT)
-				nodeR.AddFanout(nodeT)
+				// Connect operands to operation node
+				nodeT.Receive(nodeL)
+				nodeT.Receive(nodeR)
 
-				nodeT.AddFanin(nodeL)
-				nodeT.AddFanin(nodeR)
-
+				// Calculate operation node's rank
 				ranks[nodeT] = ranks[nodeL] + ranks[nodeR]
 
-				if q.Len() != 0 {
-					q.Push(NodePQEntry{nodeT, ranks[nodeT]})
+				if operandNodes.Len() != 0 {
+					// The operation node now becomes an operand for succeding operations
+					operandNodes.Push(NodePQEntry{nodeT, ranks[nodeT]})
 				}
 			}
-		}
-
-		ranks[n] = flatten(n.Fanin(0), n.op) + flatten(n.Fanin(1), n.op)
-
-		rebuild(n)
-	}
-
-	for roots.Len() > 0 {
-		balance(roots.PopMin())
-	}
+		} // func rebuild
+	} // func balance
 }
