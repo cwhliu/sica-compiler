@@ -63,13 +63,13 @@ func (pq nodePQ) Less(i, j int) bool { return pq[i].priority < pq[j].priority }
 func (pq nodePQ) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
 
 func (pq *nodePQ) Push(x interface{}) {
-	node := x.(NodePQEntry)
-	*pq = append(*pq, node)
+	entry := x.(NodePQEntry)
+	*pq = append(*pq, entry)
 }
 
 func (pq *nodePQ) Pop() interface{} {
 	oldPQ := *pq
-	node := oldPQ[len(oldPQ)-1]
+	entry := oldPQ[len(oldPQ)-1]
 	*pq = oldPQ[0 : len(oldPQ)-1]
-	return node
+	return entry
 }

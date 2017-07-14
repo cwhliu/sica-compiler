@@ -61,7 +61,13 @@ func (g *Graph) OutputDotFile() {
 		for i := 0; i < node.NumFanins(); i++ {
 			fanin := node.Fanin(i)
 
-			w.WriteString(fmt.Sprintf("\"%s\" -> \"%s\"\n", fanin.name, node.name))
+			var modifier string
+			if node.FaninSign(i) {
+				modifier = "color=\"red\""
+			}
+
+			w.WriteString(fmt.Sprintf("\"%s\" -> \"%s\" ", fanin.name, node.name))
+			w.WriteString(fmt.Sprintf("[%s]\n", modifier))
 		}
 	}
 

@@ -14,6 +14,7 @@ func (f *Forge) Parse(fname string) error {
 		g.OptimizeTreeHeight()
 
 		fmt.Printf("Graph has %d operation nodes\n", g.NumOperationNodes())
+		fmt.Println(g.Levelize())
 
 		g.OutputDotFile()
 

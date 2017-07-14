@@ -22,14 +22,17 @@ func (g *Graph) OptimizeValueNumbering() {
 	// This map acts as a hash holding value numbers
 	vnMap := make(map[string]*Node)
 
-	for pq.Len() > 1 {
+	for pq.Len() > 0 {
 		node := pq.PopMin()
 
 		// Construct the value number for this operation
 		// Here we're not using fanin's value number but their name, this is
 		// sub-optimal but much easier
 		vnKey := NodeOpStringLUT[node.op]
-		for _, fi := range node.fanins {
+		for i, fi := range node.fanins {
+			if node.FaninSign(i) {
+				vnKey += "-"
+			}
 			vnKey += fi.name
 		}
 
@@ -110,16 +113,18 @@ func (g *Graph) OptimizeTreeHeight() {
 
 		// Store all the operands for the given root node
 		operandNodes := CreateNodePQ()
+		operandSigns := map[*Node]bool{}
 		// Collect all the operations along the traversal, and later on rebuild the
 		// tree using these nodes
 		operationNodes := []*Node{}
 
-		var flatten func(n *Node, op NodeOp) int
+		var flatten func(n *Node, op NodeOp, sign bool) int
 		var rebuild func(n *Node)
 
 		defer func() {
 			// Recursively collect all operands
-			ranks[root] = flatten(root.Fanin(0), root.op) + flatten(root.Fanin(1), root.op)
+			ranks[root] = flatten(root.Fanin(0), root.op, root.FaninSign(0)) +
+				flatten(root.Fanin(1), root.op, root.FaninSign(1))
 			// Build a balanced tree for this tree root
 			rebuild(root)
 		}()
@@ -127,27 +132,32 @@ func (g *Graph) OptimizeTreeHeight() {
 		/*
 		   Find all operands for a sub-tree starting with node n
 		*/
-		flatten = func(n *Node, op NodeOp) int {
+		flatten = func(n *Node, op NodeOp, sign bool) int {
 			if ranks[n] >= 0 {
 				// This node is already processed, so it becomes an operand
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
+				operandSigns[n] = sign
 			} else if n.kind == NodeKind_Constant {
 				// A constant has rank 0 and it's an operand
 				ranks[n] = 0
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
+				operandSigns[n] = sign
 			} else if n.kind == NodeKind_Input || n.op != op {
 				// Reach the boundary of the sub-tree, either input or a node with
 				// different operation, and it's an operand
 				ranks[n] = 1
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
+				operandSigns[n] = sign
 			} else if exist := candidateRoots.FindNode(n); exist {
 				// If the node is also a candidate tree root, build it recursively and
 				// it becomes an operand
 				balance(n)
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
+				operandSigns[n] = sign
 			} else {
 				// An internal node in a sub-tree, recursively find its operands
-				ranks[n] = flatten(n.Fanin(0), n.op) + flatten(n.Fanin(1), n.op)
+				ranks[n] = flatten(n.Fanin(0), n.op, n.FaninSign(0)) +
+					flatten(n.Fanin(1), n.op, n.FaninSign(1))
 				operationNodes = append(operationNodes, n)
 			}
 
@@ -202,6 +212,13 @@ func (g *Graph) OptimizeTreeHeight() {
 				// Connect operands to operation node
 				nodeT.Receive(nodeL)
 				nodeT.Receive(nodeR)
+
+				if operandSigns[nodeL] {
+					nodeT.NegateFaninByIndex(0)
+				}
+				if operandSigns[nodeR] {
+					nodeT.NegateFaninByIndex(1)
+				}
 
 				// Calculate operation node's rank
 				ranks[nodeT] = ranks[nodeL] + ranks[nodeR]

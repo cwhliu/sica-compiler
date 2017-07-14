@@ -8,6 +8,8 @@ type Node struct {
 
 	fanins  []*Node
 	fanouts []*Node
+
+	faninSigns []bool
 }
 
 // -----------------------------------------------------------------------------
@@ -28,7 +30,10 @@ func (n *Node) Receive(fi *Node) {
 /*
 Add node fi to node n's fanin list
 */
-func (n *Node) AddFanin(fi *Node) { n.fanins = append(n.fanins, fi) }
+func (n *Node) AddFanin(fi *Node) {
+	n.fanins = append(n.fanins, fi)
+	n.faninSigns = append(n.faninSigns, false)
+}
 
 /*
 Get the number of fanin nodes
@@ -49,6 +54,7 @@ func (n *Node) RemoveFanin(fi *Node) {
 	for i, nd := range n.fanins {
 		if nd == fi {
 			n.fanins = append(n.fanins[:i], n.fanins[i+1:]...)
+			n.faninSigns = append(n.faninSigns[:i], n.faninSigns[i+1:]...)
 			return
 		}
 	}
@@ -57,11 +63,51 @@ func (n *Node) RemoveFanin(fi *Node) {
 /*
 Replace old fanin node (oldFi) by new fanin node (newFi)
 */
-func (n *Node) ReplaceFanin(oldFi, newFi *Node) {
+func (n *Node) ReplaceFanin(oldFi, newFi *Node) int {
 	for i, nd := range n.fanins {
 		if nd == oldFi {
 			n.fanins[i] = newFi
+			return i
+		}
+	}
+	return -1
+}
+
+func (n *Node) FaninSign(index int) bool { return n.faninSigns[index] }
+
+func (n *Node) NegateFaninByNode(fi *Node) {
+	for i, nd := range n.fanins {
+		if nd == fi {
+			n.faninSigns[i] = !n.faninSigns[i]
 			return
+		}
+	}
+}
+
+func (n *Node) NegateFaninByIndex(index int) {
+	n.faninSigns[index] = !n.faninSigns[index]
+}
+
+func (n *Node) PropagateSign() {
+	switch n.op {
+	case NodeOp_Add:
+		if n.faninSigns[0] && n.faninSigns[1] {
+			n.faninSigns[0], n.faninSigns[1] = false, false
+
+			for _, fo := range n.fanouts {
+				fo.NegateFaninByNode(n)
+			}
+		}
+	case NodeOp_Mul, NodeOp_Div:
+		if n.faninSigns[0] && !n.faninSigns[1] ||
+			!n.faninSigns[0] && n.faninSigns[1] {
+			n.faninSigns[0], n.faninSigns[1] = false, false
+
+			for _, fo := range n.fanouts {
+				fo.NegateFaninByNode(n)
+			}
+		} else if !n.faninSigns[0] && !n.faninSigns[1] {
+			n.faninSigns[0], n.faninSigns[1] = false, false
 		}
 	}
 }
@@ -101,11 +147,12 @@ func (n *Node) RemoveFanout(fo *Node) {
 /*
 Replace old fanout node (oldFo) by new fanout node (newFo)
 */
-func (n *Node) ReplaceFanout(oldFo, newFo *Node) {
+func (n *Node) ReplaceFanout(oldFo, newFo *Node) int {
 	for i, nd := range n.fanouts {
 		if nd == oldFo {
 			n.fanouts[i] = newFo
-			return
+			return i
 		}
 	}
+	return -1
 }

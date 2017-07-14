@@ -34,7 +34,7 @@ func CreateGraph() *Graph {
 Call this function to legitimate the graph after nodes are added to the graph
 */
 func (g *Graph) Legitimate() {
-	// Finalize node kind for undetermined nodes
+	// Determine node kind for undetermined nodes and delete internal nodes
 	for name, node := range g.allNodes {
 		if node.kind == NodeKind_Undetermined {
 			if node.NumFanins() == 0 {
@@ -59,6 +59,42 @@ func (g *Graph) Legitimate() {
 				g.DeleteNodeByName(name)
 			}
 		}
+	}
+
+	// Do some simple operation transformation here
+	g.Levelize()
+
+	pq := CreateNodePQ()
+	for _, node := range g.operationNodes {
+		pq.Push(NodePQEntry{node, node.level})
+	}
+
+	for pq.Len() > 0 {
+		node := pq.PopMin()
+
+		switch node.op {
+		case NodeOp_Sub:
+			if node.NumFanins() == 1 {
+				// A subtraction with one fanin is a negate operation
+				// Delete the operation node, pass its fanin and sign to fanouts
+				fi := node.Fanin(0)
+				fi.RemoveFanout(node)
+
+				for _, fo := range node.fanouts {
+					fi.AddFanout(fo)
+					fo.ReplaceFanin(node, fi)
+					fo.NegateFaninByNode(fi)
+				}
+
+				g.DeleteNodeByName(node.name)
+			} else {
+				// Change a subtraction into addition by negating its second fanin
+				node.op = NodeOp_Add
+				node.NegateFaninByNode(node.Fanin(1))
+			}
+		}
+
+		node.PropagateSign()
 	}
 }
 
