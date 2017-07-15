@@ -93,7 +93,7 @@ func (p *Parser) Parse(fname string) (*Graph, error) {
 
 	p.graph.Legitimate()
 
-	fmt.Printf("%s %d ", fname, len(p.tokens))
+	fmt.Println(fname)
 
 	return p.graph, nil
 }

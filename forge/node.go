@@ -1,5 +1,10 @@
 package forge
 
+import (
+  "fmt"
+  "math"
+)
+
 type Node struct {
 	name  string
 	kind  NodeKind
@@ -10,6 +15,8 @@ type Node struct {
 	fanouts []*Node
 
 	faninSigns []bool
+
+  value float64
 }
 
 // -----------------------------------------------------------------------------
@@ -73,7 +80,16 @@ func (n *Node) ReplaceFanin(oldFi, newFi *Node) int {
 	return -1
 }
 
-func (n *Node) FaninSign(index int) bool { return n.faninSigns[index] }
+func (n *Node) GetFaninSignByIndex(index int) bool { return n.faninSigns[index] }
+
+func (n *Node) GetFaninSignByNode(fi *Node) bool {
+	for i, nd := range n.fanins {
+		if nd == fi {
+			return n.faninSigns[i]
+		}
+	}
+  return false // this actually should be an error
+}
 
 func (n *Node) NegateFaninByNode(fi *Node) {
 	for i, nd := range n.fanins {
@@ -155,4 +171,38 @@ func (n *Node) ReplaceFanout(oldFo, newFo *Node) int {
 		}
 	}
 	return -1
+}
+
+// Node value evaluation
+// -----------------------------------------------------------------------------
+func (n *Node) Eval() {
+  signs := []float64{}
+  for _, sign := range n.faninSigns {
+    if sign {
+      signs = append(signs, -1)
+    } else {
+      signs = append(signs, 1)
+    }
+  }
+
+  switch n.op {
+    case NodeOp_Equal:
+      n.value = n.Fanin(0).value
+    case NodeOp_Add:
+      n.value = (signs[0]*n.Fanin(0).value) + (signs[1]*n.Fanin(1).value)
+    case NodeOp_Sub:
+      fmt.Println("node eval error - should not contain subtraction")
+    case NodeOp_Mul:
+      n.value = (signs[0]*n.Fanin(0).value) * (signs[1]*n.Fanin(1).value)
+    case NodeOp_Div:
+      n.value = (signs[0]*n.Fanin(0).value) / (signs[1]*n.Fanin(1).value)
+    case NodeOp_Power:
+      n.value = math.Pow(signs[0]*n.Fanin(0).value, signs[1]*n.Fanin(1).value)
+    case NodeOp_Sin:
+      n.value = math.Sin(signs[0]*n.Fanin(0).value)
+    case NodeOp_Cos:
+      n.value = math.Cos(signs[0]*n.Fanin(0).value)
+    default:
+      fmt.Println("node eval error - unsupported operation", NodeOpStringLUT[n.op])
+  }
 }

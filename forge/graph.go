@@ -3,6 +3,7 @@ package forge
 import (
 	"fmt"
 	"strconv"
+  "math/rand"
 )
 
 type Graph struct {
@@ -96,6 +97,11 @@ func (g *Graph) Legitimate() {
 
 		node.PropagateSign()
 	}
+
+  // Set the value for constant nodes
+  for _, n := range g.constantNodes {
+    n.value, _ = strconv.ParseFloat(n.name[3:], 64)
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -212,4 +218,29 @@ func (g *Graph) Levelize() int {
 	}
 
 	return maxLevel
+}
+
+// -----------------------------------------------------------------------------
+
+func (g *Graph) Setup() {
+  for _, n := range g.inputNodes {
+    n.value = rand.Float64()
+  }
+}
+
+func (g *Graph) Eval() {
+  g.Levelize()
+
+  pq := CreateNodePQ()
+  for _, n := range g.operationNodes {
+    pq.Push(NodePQEntry{n, n.level})
+  }
+  for _, n := range g.outputNodes {
+    pq.Push(NodePQEntry{n, n.level})
+  }
+
+  for pq.Len() > 0 {
+    node := pq.PopMin()
+    node.Eval()
+  }
 }

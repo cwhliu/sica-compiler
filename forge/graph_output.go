@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+  "strconv"
 )
 
 func (g *Graph) OutputDotFile() {
@@ -19,6 +20,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=min\n")
 	for _, node := range g.inputNodes {
 		label := node.name[3:]
+		label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
@@ -30,6 +32,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=max\n")
 	for _, node := range g.outputNodes {
 		label := node.name[3:]
+		label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
@@ -47,10 +50,9 @@ func (g *Graph) OutputDotFile() {
 
 	// Operation nodes
 	for _, node := range g.operationNodes {
-		opString, _ := NodeOpStringLUT[node.op]
-		opString += node.name
-
-		label := opString
+		label, _ := NodeOpStringLUT[node.op]
+		//label += node.name
+		label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect label=\"%s\"]\n", label))
@@ -62,7 +64,7 @@ func (g *Graph) OutputDotFile() {
 			fanin := node.Fanin(i)
 
 			var modifier string
-			if node.FaninSign(i) {
+			if node.GetFaninSignByIndex(i) {
 				modifier = "color=\"red\""
 			}
 
