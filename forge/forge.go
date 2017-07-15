@@ -10,11 +10,15 @@ func (f *Forge) Parse(fname string) error {
 	if g, err := f.parser.Parse(fname); err != nil {
 		return err
 	} else {
+		g.EvaluateGolden(1)
+
 		g.OptimizeValueNumbering()
 		g.OptimizeTreeHeight()
 
-		fmt.Printf("Graph has %d operation nodes\n", g.NumOperationNodes())
-		fmt.Println(g.Levelize())
+		g.EvaluateCompare()
+
+		fmt.Printf(" %d operation nodes, %d levels\n",
+			g.NumOperationNodes(), g.Levelize())
 
 		g.OutputDotFile()
 

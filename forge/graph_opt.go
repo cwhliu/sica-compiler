@@ -135,9 +135,9 @@ func (g *Graph) OptimizeTreeHeight() {
 		   Find all operands for a sub-tree starting with node n
 		*/
 		flatten = func(n *Node, op NodeOp, sign, rootSign bool) int {
-      if rootSign {
-        sign = !sign
-      }
+			if rootSign {
+				sign = !sign
+			}
 
 			if ranks[n] >= 0 {
 				// This node is already processed, so it becomes an operand

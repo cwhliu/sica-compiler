@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-  "strconv"
+	"strconv"
 )
 
 func (g *Graph) OutputDotFile() {
