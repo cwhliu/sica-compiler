@@ -1,5 +1,10 @@
 package forge
 
+// -----------------------------------------------------------------------------
+
+/*
+NodeKind represents the type of a node.
+*/
 type NodeKind int
 
 const (
@@ -11,6 +16,9 @@ const (
 	NodeKind_Constant
 )
 
+// -----------------------------------------------------------------------------
+
+// NodeOp represents the operation of a node.
 type NodeOp int
 
 const (
@@ -36,7 +44,14 @@ const (
 	NodeOp_Tanh
 )
 
+// -----------------------------------------------------------------------------
+
+// NodeOpLUT is a lookup table for converting a string to a NodeOp.
+// For example, "+" -> NodeOp_Add
 var NodeOpLUT = make(map[string]NodeOp)
+
+// NodeOpStringLUT is a lookup table for converting a NodeOp to a string.
+// For example, NodeOp_Add -> "+"
 var NodeOpStringLUT = make(map[NodeOp]string)
 
 func init() {

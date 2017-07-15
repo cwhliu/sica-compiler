@@ -5,6 +5,9 @@ import (
 	"math"
 )
 
+/*
+Node is the basic unit in a graph.
+*/
 type Node struct {
 	name  string
 	kind  NodeKind
@@ -19,23 +22,11 @@ type Node struct {
 	value float64
 }
 
+// Fanin
 // -----------------------------------------------------------------------------
 
 /*
-Node n receives node fi as a fanin
-*/
-func (n *Node) Receive(fi *Node) {
-	// Set fi to be n's fanin
-	n.AddFanin(fi)
-	// Set n to be fi's fanout
-	fi.AddFanout(n)
-}
-
-// Fanins
-// -----------------------------------------------------------------------------
-
-/*
-Add node fi to node n's fanin list
+AddFanin connects fi as a fanin to the node.
 */
 func (n *Node) AddFanin(fi *Node) {
 	n.fanins = append(n.fanins, fi)
@@ -43,23 +34,23 @@ func (n *Node) AddFanin(fi *Node) {
 }
 
 /*
-Get the number of fanin nodes
+NumFanins returns the number of fanins to the node.
 */
 func (n *Node) NumFanins() int { return len(n.fanins) }
 
 /*
-Get the fanin node at the given index
+Fanin returns the fanin at the index.
 */
 func (n *Node) Fanin(index int) *Node {
 	return n.fanins[index]
 }
 
 /*
-Remove node fi from node n's fanin list
+RemoveFanin disconnects fi from the node's fanin.
 */
 func (n *Node) RemoveFanin(fi *Node) {
-	for i, nd := range n.fanins {
-		if nd == fi {
+	for i, node := range n.fanins {
+		if node == fi {
 			n.fanins = append(n.fanins[:i], n.fanins[i+1:]...)
 			n.faninSigns = append(n.faninSigns[:i], n.faninSigns[i+1:]...)
 			return
@@ -68,11 +59,11 @@ func (n *Node) RemoveFanin(fi *Node) {
 }
 
 /*
-Replace old fanin node (oldFi) by new fanin node (newFi)
+ReplaceFanin replaces an old fanin by a new fanin.
 */
 func (n *Node) ReplaceFanin(oldFi, newFi *Node) int {
-	for i, nd := range n.fanins {
-		if nd == oldFi {
+	for i, node := range n.fanins {
+		if node == oldFi {
 			n.fanins[i] = newFi
 			return i
 		}
@@ -80,30 +71,50 @@ func (n *Node) ReplaceFanin(oldFi, newFi *Node) int {
 	return -1
 }
 
+// Fanin sign
+// -----------------------------------------------------------------------------
+
+/*
+GetFaninSignByIndex returns the sign for the fanin at the index.
+*/
 func (n *Node) GetFaninSignByIndex(index int) bool { return n.faninSigns[index] }
 
+/*
+GetFaninSignByNode return the sign for fi.
+*/
 func (n *Node) GetFaninSignByNode(fi *Node) bool {
-	for i, nd := range n.fanins {
-		if nd == fi {
+	for i, node := range n.fanins {
+		if node == fi {
 			return n.faninSigns[i]
 		}
 	}
 	return false // this actually should be an error
 }
 
+/*
+NegateFaninByIndex negates the sign for the fanin at the index.
+*/
+func (n *Node) NegateFaninByIndex(index int) {
+	n.faninSigns[index] = !n.faninSigns[index]
+}
+
+/*
+NegateFaninByNode negates the sign for fi.
+*/
 func (n *Node) NegateFaninByNode(fi *Node) {
-	for i, nd := range n.fanins {
-		if nd == fi {
+	for i, node := range n.fanins {
+		if node == fi {
 			n.faninSigns[i] = !n.faninSigns[i]
 			return
 		}
 	}
 }
 
-func (n *Node) NegateFaninByIndex(index int) {
-	n.faninSigns[index] = !n.faninSigns[index]
-}
-
+/*
+PropagateSign propagates fanin signs to the fanout.
+Negates the fanout of an addition if both fanins are negative.
+Negates the fanout of a multiply and division if one of the fanins is negative.
+*/
 func (n *Node) PropagateSign() {
 	switch n.op {
 	case NodeOp_Add:
@@ -128,32 +139,32 @@ func (n *Node) PropagateSign() {
 	}
 }
 
-// Fanouts
+// Fanout
 // -----------------------------------------------------------------------------
 
 /*
-Add node fo to node n's fanout list
+AddFanout connects fo as a fanout of the node.
 */
 func (n *Node) AddFanout(fo *Node) { n.fanouts = append(n.fanouts, fo) }
 
 /*
-Get the number of fanout nodes
+NumFanouts returns the number of fanouts of the node
 */
 func (n *Node) NumFanouts() int { return len(n.fanouts) }
 
 /*
-Get the fanout node at the given index
+Fanout returns the fanout at the index.
 */
 func (n *Node) Fanout(index int) *Node {
 	return n.fanouts[index]
 }
 
 /*
-Remove node fo from node n's fanout list
+RemoveFanout removes fo from the node's fanout.
 */
 func (n *Node) RemoveFanout(fo *Node) {
-	for i, nd := range n.fanouts {
-		if nd == fo {
+	for i, node := range n.fanouts {
+		if node == fo {
 			n.fanouts = append(n.fanouts[:i], n.fanouts[i+1:]...)
 			return
 		}
@@ -161,11 +172,11 @@ func (n *Node) RemoveFanout(fo *Node) {
 }
 
 /*
-Replace old fanout node (oldFo) by new fanout node (newFo)
+ReplaceFanout replaces an old fanout by a new fanout.
 */
 func (n *Node) ReplaceFanout(oldFo, newFo *Node) int {
-	for i, nd := range n.fanouts {
-		if nd == oldFo {
+	for i, node := range n.fanouts {
+		if node == oldFo {
 			n.fanouts[i] = newFo
 			return i
 		}
@@ -173,8 +184,19 @@ func (n *Node) ReplaceFanout(oldFo, newFo *Node) int {
 	return -1
 }
 
-// Node value evaluation
 // -----------------------------------------------------------------------------
+
+/*
+Receive connects fi as a fanin to the node, and the node as a fanout of fi.
+*/
+func (n *Node) Receive(fi *Node) {
+	n.AddFanin(fi)
+	fi.AddFanout(n)
+}
+
+// -----------------------------------------------------------------------------
+
+// Eval evaluates the node's value based on its operation and fanins' value
 func (n *Node) Eval() {
 	signs := []float64{}
 	for _, sign := range n.faninSigns {
