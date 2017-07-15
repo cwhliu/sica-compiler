@@ -1,5 +1,7 @@
 package forge
 
+//import "fmt"
+
 /*
 Eliminate duplicated operations using value numbering
 
@@ -30,7 +32,7 @@ func (g *Graph) OptimizeValueNumbering() {
 		// sub-optimal but much easier
 		vnKey := NodeOpStringLUT[node.op]
 		for i, fi := range node.fanins {
-			if node.FaninSign(i) {
+			if node.GetFaninSignByIndex(i) {
 				vnKey += "-"
 			}
 			vnKey += fi.name
@@ -118,13 +120,13 @@ func (g *Graph) OptimizeTreeHeight() {
 		// tree using these nodes
 		operationNodes := []*Node{}
 
-		var flatten func(n *Node, op NodeOp, sign bool) int
+		var flatten func(n *Node, op NodeOp, sign, rootSign bool) int
 		var rebuild func(n *Node)
 
 		defer func() {
 			// Recursively collect all operands
-			ranks[root] = flatten(root.Fanin(0), root.op, root.FaninSign(0)) +
-				flatten(root.Fanin(1), root.op, root.FaninSign(1))
+			ranks[root] = flatten(root.Fanin(0), root.op, root.GetFaninSignByIndex(0), false) +
+				flatten(root.Fanin(1), root.op, root.GetFaninSignByIndex(1), false)
 			// Build a balanced tree for this tree root
 			rebuild(root)
 		}()
@@ -132,7 +134,11 @@ func (g *Graph) OptimizeTreeHeight() {
 		/*
 		   Find all operands for a sub-tree starting with node n
 		*/
-		flatten = func(n *Node, op NodeOp, sign bool) int {
+		flatten = func(n *Node, op NodeOp, sign, rootSign bool) int {
+      if rootSign {
+        sign = !sign
+      }
+
 			if ranks[n] >= 0 {
 				// This node is already processed, so it becomes an operand
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
@@ -156,8 +162,8 @@ func (g *Graph) OptimizeTreeHeight() {
 				operandSigns[n] = sign
 			} else {
 				// An internal node in a sub-tree, recursively find its operands
-				ranks[n] = flatten(n.Fanin(0), n.op, n.FaninSign(0)) +
-					flatten(n.Fanin(1), n.op, n.FaninSign(1))
+				ranks[n] = flatten(n.Fanin(0), n.op, n.GetFaninSignByIndex(0), sign) +
+					flatten(n.Fanin(1), n.op, n.GetFaninSignByIndex(1), sign)
 				operationNodes = append(operationNodes, n)
 			}
 
