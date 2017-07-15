@@ -12,8 +12,9 @@ func (f *Forge) Parse(fname string) error {
 	} else {
 		g.EvaluateGolden(1)
 
-		g.OptimizeValueNumbering()
-		g.OptimizeTreeHeight()
+		g.SimplifyArithmetic()
+		g.EliminateDuplicatedOperation()
+		g.MaximizeParallelism()
 
 		g.EvaluateCompare()
 

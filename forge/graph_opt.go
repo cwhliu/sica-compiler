@@ -1,6 +1,41 @@
 package forge
 
-//import "fmt"
+import "fmt"
+
+func (g *Graph) SimplifyArithmetic() {
+	for _, node := range g.operationNodes {
+		switch node.op {
+		case NodeOp_Mul:
+			var negateOutput bool = false
+			if node.GetFaninSignByIndex(0) != node.GetFaninSignByIndex(1) {
+				negateOutput = true
+			}
+
+			for i, candidateConst := range node.fanins {
+				feedthrough := node.Fanin(1 - i)
+
+				if candidateConst.kind == NodeKind_Constant && candidateConst.value == 1 {
+					fmt.Println(feedthrough.kind)
+					for _, fi := range node.fanins {
+						fi.RemoveFanout(node)
+					}
+
+					for _, fo := range node.fanouts {
+						feedthrough.AddFanout(fo)
+						fo.ReplaceFanin(node, feedthrough)
+
+						if negateOutput {
+							fo.NegateFaninByNode(feedthrough)
+						}
+					}
+
+					g.DeleteNodeByName(node.name)
+					break
+				}
+			}
+		}
+	}
+}
 
 /*
 Eliminate duplicated operations using value numbering
@@ -11,7 +46,7 @@ processed before it (this happens if loop over a map because map is not ordered)
 
 See "Engineering a Compiler 2nd Edition, section 8.4.1"
 */
-func (g *Graph) OptimizeValueNumbering() {
+func (g *Graph) EliminateDuplicatedOperation() {
 	// Levelize the graph
 	g.Levelize()
 
@@ -58,14 +93,14 @@ func (g *Graph) OptimizeValueNumbering() {
 }
 
 /*
-Optimize tree height in the graph by balancing a skewed trees in two phases
+Maximize parallelism by balancing tree height of the graph in two phases
  The first phase identifies candidate tree roots
  The second phase finds all the operands for a candidate tree and build a
  balanced tree for them
 
 See "Engineering a Compiler 2nd Edition, section 8.4.2"
 */
-func (g *Graph) OptimizeTreeHeight() {
+func (g *Graph) MaximizeParallelism() {
 
 	// Phase 1 - analysis
 	// ---------------------------------------------------------------------------
