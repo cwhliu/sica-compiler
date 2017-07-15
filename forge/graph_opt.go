@@ -1,6 +1,6 @@
 package forge
 
-import "fmt"
+//import "fmt"
 
 func (g *Graph) SimplifyArithmetic() {
 	for _, node := range g.operationNodes {
@@ -15,7 +15,6 @@ func (g *Graph) SimplifyArithmetic() {
 				feedthrough := node.Fanin(1 - i)
 
 				if candidateConst.kind == NodeKind_Constant && candidateConst.value == 1 {
-					fmt.Println(feedthrough.kind)
 					for _, fi := range node.fanins {
 						fi.RemoveFanout(node)
 					}
@@ -150,7 +149,7 @@ func (g *Graph) MaximizeParallelism() {
 
 		// Store all the operands for the given root node
 		operandNodes := CreateNodePQ()
-		operandSigns := map[*Node]bool{}
+		operandSigns := map[*Node]int{}
 		// Collect all the operations along the traversal, and later on rebuild the
 		// tree using these nodes
 		operationNodes := []*Node{}
@@ -177,24 +176,32 @@ func (g *Graph) MaximizeParallelism() {
 			if ranks[n] >= 0 {
 				// This node is already processed, so it becomes an operand
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
-				operandSigns[n] = sign
+				if sign {
+					operandSigns[n]++
+				}
 			} else if n.kind == NodeKind_Constant {
 				// A constant has rank 0 and it's an operand
 				ranks[n] = 0
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
-				operandSigns[n] = sign
+				if sign {
+					operandSigns[n]++
+				}
 			} else if n.kind == NodeKind_Input || n.op != op {
 				// Reach the boundary of the sub-tree, either input or a node with
 				// different operation, and it's an operand
 				ranks[n] = 1
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
-				operandSigns[n] = sign
+				if sign {
+					operandSigns[n]++
+				}
 			} else if exist := candidateRoots.FindNode(n); exist {
 				// If the node is also a candidate tree root, build it recursively and
 				// it becomes an operand
 				balance(n)
 				operandNodes.Push(NodePQEntry{n, ranks[n]})
-				operandSigns[n] = sign
+				if sign {
+					operandSigns[n]++
+				}
 			} else {
 				// An internal node in a sub-tree, recursively find its operands
 				ranks[n] = flatten(n.Fanin(0), n.op, n.GetFaninSignByIndex(0), sign) +
@@ -254,11 +261,13 @@ func (g *Graph) MaximizeParallelism() {
 				nodeT.Receive(nodeL)
 				nodeT.Receive(nodeR)
 
-				if operandSigns[nodeL] {
+				if count, exist := operandSigns[nodeL]; exist && count > 0 {
 					nodeT.NegateFaninByIndex(0)
+					operandSigns[nodeL]--
 				}
-				if operandSigns[nodeR] {
+				if count, exist := operandSigns[nodeR]; exist && count > 0 {
 					nodeT.NegateFaninByIndex(1)
+					operandSigns[nodeR]--
 				}
 
 				// Calculate operation node's rank
