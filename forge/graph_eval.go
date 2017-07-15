@@ -46,9 +46,12 @@ func (g *Graph) EvaluateCompare() {
 			result := node.value
 			golden := GraphPOs[set][name]
 
-			epsilon := 0.1
+			diffAbs := math.Abs(result - golden)
+			diffRel := math.Abs(diffAbs / golden)
 
-			if math.Abs(result-golden) > epsilon {
+			// Mismatch if the absolute value differs by 0.01 and the relative value
+			// differs by 1%
+			if diffAbs > 0.01 && diffRel > 0.01 {
 				fmt.Printf("Mismatch, set %d, node %s, %f != %f\n",
 					set, node.name, result, golden)
 			}
