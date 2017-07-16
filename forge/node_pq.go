@@ -1,6 +1,9 @@
 package forge
 
-import "container/heap"
+import (
+	"container/heap"
+	"fmt"
+)
 
 /*
 NodePQ is a wrapper around the underlying heap container, providing simple and
@@ -15,7 +18,7 @@ NodePQEntry is the storage entry of NodePQ.
 */
 type NodePQEntry struct {
 	Payload  *Node
-	Priority int
+	Priority interface{}
 }
 
 // -----------------------------------------------------------------------------
@@ -75,7 +78,23 @@ type nodePQ []NodePQEntry
 
 func (pq nodePQ) Len() int { return len(pq) }
 
-func (pq nodePQ) Less(i, j int) bool { return pq[i].Priority < pq[j].Priority }
+func (pq nodePQ) Less(i, j int) bool {
+	var val1, val2 float64
+
+	if val, ok := pq[i].Priority.(int); ok {
+		// Priorities are integer
+		val1 = float64(val)
+		val2 = float64(pq[j].Priority.(int))
+	} else if val, ok := pq[i].Priority.(float64); ok {
+		// Priorities are floating point
+		val1 = val
+		val2 = pq[j].Priority.(float64)
+	} else {
+		fmt.Println("node pq error - wrong prioirty type")
+	}
+
+	return val1 < val2
+}
 
 func (pq nodePQ) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
 
