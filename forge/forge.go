@@ -6,13 +6,14 @@ import "fmt"
 Forge is the main compiler instance.
 */
 type Forge struct {
-	parser Parser
+	parser    Parser
+	scheduler Scheduler
 }
 
 /*
-Parse invokes the parser to parse the C++ source file and build a graph for it.
+BuildGraph invokes the parser to parse the C++ source file and build a graph for it.
 */
-func (f *Forge) Parse(filename string) error {
+func (f *Forge) BuildGraph(filename string) error {
 	if g, err := f.parser.Parse(filename); err != nil {
 		return err
 	} else {
@@ -29,6 +30,18 @@ func (f *Forge) Parse(filename string) error {
 
 		g.OutputDotFile()
 
+		// Pass the graph to the scheduler
+		f.scheduler.graph = g
+
 		return nil
 	}
+}
+
+/*
+ScheduleGraph schedules the operations in the graph onto the hardware accelerator.
+*/
+func (f *Forge) ScheduleGraph() {
+	f.scheduler.ConfigureHW()
+
+	f.scheduler.ScheduleHEFT()
 }

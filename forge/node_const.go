@@ -55,6 +55,7 @@ var NodeOpLUT = make(map[string]NodeOp)
 var NodeOpStringLUT = make(map[NodeOp]string)
 
 func init() {
+	// Commented operations are temporarily made unsupported
 	NodeOpLUT[""] = NodeOp_Nop
 	NodeOpLUT["="] = NodeOp_Equal
 	NodeOpLUT["+"] = NodeOp_Add
@@ -62,19 +63,19 @@ func init() {
 	NodeOpLUT["*"] = NodeOp_Mul
 	NodeOpLUT["/"] = NodeOp_Div
 	NodeOpLUT["power"] = NodeOp_Power
-	NodeOpLUT["sqrt"] = NodeOp_Sqrt
-	NodeOpLUT["abs"] = NodeOp_Abs
-	NodeOpLUT["exp"] = NodeOp_Exp
-	NodeOpLUT["log"] = NodeOp_Log
+	//NodeOpLUT["sqrt"] = NodeOp_Sqrt
+	//NodeOpLUT["abs"] = NodeOp_Abs
+	//NodeOpLUT["exp"] = NodeOp_Exp
+	//NodeOpLUT["log"] = NodeOp_Log
 	NodeOpLUT["sin"] = NodeOp_Sin
 	NodeOpLUT["cos"] = NodeOp_Cos
-	NodeOpLUT["tan"] = NodeOp_Tan
-	NodeOpLUT["arcsin"] = NodeOp_Arcsin
-	NodeOpLUT["arccos"] = NodeOp_Arccos
-	NodeOpLUT["arctan"] = NodeOp_Arctan
-	NodeOpLUT["sinh"] = NodeOp_Sinh
-	NodeOpLUT["cosh"] = NodeOp_Cosh
-	NodeOpLUT["tanh"] = NodeOp_Tanh
+	//NodeOpLUT["tan"] = NodeOp_Tan
+	//NodeOpLUT["arcsin"] = NodeOp_Arcsin
+	//NodeOpLUT["arccos"] = NodeOp_Arccos
+	//NodeOpLUT["arctan"] = NodeOp_Arctan
+	//NodeOpLUT["sinh"] = NodeOp_Sinh
+	//NodeOpLUT["cosh"] = NodeOp_Cosh
+	//NodeOpLUT["tanh"] = NodeOp_Tanh
 
 	NodeOpStringLUT[NodeOp_Nop] = ""
 	NodeOpStringLUT[NodeOp_Equal] = "="
@@ -83,17 +84,17 @@ func init() {
 	NodeOpStringLUT[NodeOp_Mul] = "*"
 	NodeOpStringLUT[NodeOp_Div] = "/"
 	NodeOpStringLUT[NodeOp_Power] = "power"
-	NodeOpStringLUT[NodeOp_Sqrt] = "sqrt"
-	NodeOpStringLUT[NodeOp_Abs] = "abs"
-	NodeOpStringLUT[NodeOp_Exp] = "exp"
-	NodeOpStringLUT[NodeOp_Log] = "log"
+	//NodeOpStringLUT[NodeOp_Sqrt] = "sqrt"
+	//NodeOpStringLUT[NodeOp_Abs] = "abs"
+	//NodeOpStringLUT[NodeOp_Exp] = "exp"
+	//NodeOpStringLUT[NodeOp_Log] = "log"
 	NodeOpStringLUT[NodeOp_Sin] = "sin"
 	NodeOpStringLUT[NodeOp_Cos] = "cos"
-	NodeOpStringLUT[NodeOp_Tan] = "tan"
-	NodeOpStringLUT[NodeOp_Arcsin] = "arcsin"
-	NodeOpStringLUT[NodeOp_Arccos] = "arccos"
-	NodeOpStringLUT[NodeOp_Arctan] = "arctan"
-	NodeOpStringLUT[NodeOp_Sinh] = "sinh"
-	NodeOpStringLUT[NodeOp_Cosh] = "cosh"
-	NodeOpStringLUT[NodeOp_Tanh] = "tanh"
+	//NodeOpStringLUT[NodeOp_Tan] = "tan"
+	//NodeOpStringLUT[NodeOp_Arcsin] = "arcsin"
+	//NodeOpStringLUT[NodeOp_Arccos] = "arccos"
+	//NodeOpStringLUT[NodeOp_Arctan] = "arctan"
+	//NodeOpStringLUT[NodeOp_Sinh] = "sinh"
+	//NodeOpStringLUT[NodeOp_Cosh] = "cosh"
+	//NodeOpStringLUT[NodeOp_Tanh] = "tanh"
 }

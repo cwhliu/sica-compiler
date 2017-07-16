@@ -15,7 +15,9 @@ func main() {
 
 	f := forge.Forge{}
 
-	if err := f.Parse(os.Args[1]); err != nil {
+	if err := f.BuildGraph(os.Args[1]); err != nil {
 		fmt.Printf("ERROR: %v\n", err)
 	}
+
+	f.ScheduleGraph()
 }
