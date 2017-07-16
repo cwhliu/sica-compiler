@@ -14,6 +14,9 @@ type Graph struct {
 	outputNodes    map[string]*Node
 	operationNodes map[string]*Node
 	constantNodes  map[string]*Node
+
+	inputValues  []map[string]float64
+	outputValues []map[string]float64
 }
 
 // -----------------------------------------------------------------------------

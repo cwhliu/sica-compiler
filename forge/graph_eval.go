@@ -6,9 +6,6 @@ import (
 	"math/rand"
 )
 
-var GraphPIs []map[string]float64
-var GraphPOs []map[string]float64
-
 /*
 EvaluateGolden creates a number of sets of random input values, evaluates the
 graph using these input values, and records the output values as the golden result.
@@ -16,22 +13,22 @@ graph using these input values, and records the output values as the golden resu
 func (g *Graph) EvaluateGolden(numSets int) {
 	g.Levelize()
 
-	GraphPIs = make([]map[string]float64, numSets)
-	GraphPOs = make([]map[string]float64, numSets)
+	g.inputValues = make([]map[string]float64, numSets)
+	g.outputValues = make([]map[string]float64, numSets)
 
 	for set := 0; set < numSets; set++ {
-		GraphPIs[set] = make(map[string]float64, g.NumInputNodes())
-		GraphPOs[set] = make(map[string]float64, g.NumOutputNodes())
+		g.inputValues[set] = make(map[string]float64, g.NumInputNodes())
+		g.outputValues[set] = make(map[string]float64, g.NumOutputNodes())
 
 		for name, node := range g.inputNodes {
-			GraphPIs[set][name] = rand.Float64()
-			node.value = GraphPIs[set][name]
+			g.inputValues[set][name] = rand.Float64()
+			node.value = g.inputValues[set][name]
 		}
 
 		g.Eval()
 
 		for name, node := range g.outputNodes {
-			GraphPOs[set][name] = node.value
+			g.outputValues[set][name] = node.value
 		}
 	}
 }
@@ -46,16 +43,16 @@ some graph transformation.
 func (g *Graph) EvaluateCompare() {
 	g.Levelize()
 
-	for set := 0; set < len(GraphPIs); set++ {
+	for set := 0; set < len(g.inputValues); set++ {
 		for name, node := range g.inputNodes {
-			node.value = GraphPIs[set][name]
+			node.value = g.inputValues[set][name]
 		}
 
 		g.Eval()
 
 		for name, node := range g.outputNodes {
 			result := node.value
-			golden := GraphPOs[set][name]
+			golden := g.outputValues[set][name]
 
 			diffAbs := math.Abs(result - golden)
 			diffRel := math.Abs(diffAbs / golden)
