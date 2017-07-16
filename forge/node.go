@@ -9,9 +9,10 @@ import (
 Node is the basic unit in a graph.
 */
 type Node struct {
-	name  string
-	kind  NodeKind
-	op    NodeOp
+	name string
+	kind NodeKind
+	op   NodeOp
+
 	level int
 
 	fanins  []*Node
@@ -20,6 +21,19 @@ type Node struct {
 	faninSigns []bool
 
 	value float64
+}
+
+/*
+CreateNode creates and returns a pointer to an initialized node.
+*/
+func CreateNode(name string, kind NodeKind, op NodeOp) *Node {
+	node := &Node{}
+
+	node.name = name
+	node.kind = kind
+	node.op = op
+
+	return node
 }
 
 // Fanin

@@ -21,6 +21,7 @@ func (f *Forge) Parse(filename string) error {
 		g.SimplifyArithmetic()
 		g.EliminateDuplicatedOperation()
 		g.MaximizeParallelism()
+		g.DeleteUnusedNodes()
 
 		g.EvaluateCompare()
 

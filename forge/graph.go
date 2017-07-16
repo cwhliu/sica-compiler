@@ -134,7 +134,7 @@ func (g *Graph) AddOperationNode(opString string) *Node {
 		return nil
 	}
 
-	newNode := &Node{name: name, kind: NodeKind_Operation, op: NodeOpLUT[opString]}
+	newNode := CreateNode(name, NodeKind_Operation, NodeOpLUT[opString])
 
 	g.allNodes[name] = newNode
 	g.operationNodes[name] = newNode
@@ -160,12 +160,12 @@ func (g *Graph) GetNodeByName(name string) *Node {
 			fmt.Println("graph error - should not create operation node here")
 			return nil
 		case "CON":
-			newNode = &Node{name: name, kind: NodeKind_Constant, op: NodeOp_Equal}
+			newNode = CreateNode(name, NodeKind_Constant, NodeOp_Equal)
 			g.constantNodes[name] = newNode
 		case "VAR", "ARR":
 			// Variable node created here has undetermined node kind because we don't
 			// know if it's an input, output, or internal node
-			newNode = &Node{name: name, op: NodeOp_Equal}
+			newNode = CreateNode(name, NodeKind_Undetermined, NodeOp_Equal)
 		}
 
 		g.allNodes[name] = newNode
@@ -190,6 +190,17 @@ func (g *Graph) DeleteNodeByName(name string) {
 	}
 
 	delete(g.allNodes, name)
+}
+
+/*
+DeleteUnusedNodes deletes nodes with no fanin and no fanout.
+*/
+func (g *Graph) DeleteUnusedNodes() {
+	for name, node := range g.allNodes {
+		if node.NumFanins() == 0 && node.NumFanouts() == 0 {
+			g.DeleteNodeByName(name)
+		}
+	}
 }
 
 // -----------------------------------------------------------------------------
