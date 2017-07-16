@@ -43,17 +43,10 @@ Push pushes a new entry to the priority queue.
 func (PQ *NodePQ) Push(n NodePQEntry) { heap.Push(PQ.pq, n) }
 
 /*
-PopMin pops an entry with the minimum priority from the priority queue.
+Pop pops an entry with the minimum priority from the priority queue.
 */
-func (PQ *NodePQ) PopMin() *Node {
+func (PQ *NodePQ) Pop() *Node {
 	return heap.Pop(PQ.pq).(NodePQEntry).Payload
-}
-
-/*
-PopMax pops an entry with the maximum priority from the priority queue.
-*/
-func (PQ *NodePQ) PopMax() *Node {
-	return heap.Remove(PQ.pq, PQ.pq.Len()-1).(NodePQEntry).Payload
 }
 
 /*

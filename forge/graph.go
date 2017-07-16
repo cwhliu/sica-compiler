@@ -78,7 +78,7 @@ func (g *Graph) Legalize() {
 	}
 
 	for pq.Len() > 0 {
-		node := pq.PopMin()
+		node := pq.Pop()
 
 		switch node.op {
 		case NodeOp_Sub:
@@ -264,7 +264,7 @@ func (g *Graph) Eval() {
 	}
 
 	for pq.Len() > 0 {
-		node := pq.PopMin()
+		node := pq.Pop()
 		node.Eval()
 	}
 }

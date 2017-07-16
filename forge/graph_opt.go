@@ -63,7 +63,7 @@ func (g *Graph) EliminateDuplicatedOperation() {
 	vnMap := make(map[string]*Node)
 
 	for pq.Len() > 0 {
-		node := pq.PopMin()
+		node := pq.Pop()
 
 		// Construct the value number for this operation
 		// Here we're not using fanin's value number but their name, this is
@@ -139,7 +139,7 @@ func (g *Graph) MaximizeParallelism() {
 	// Defer invocations of the function balance to the end when it's defined
 	defer func() {
 		for candidateRoots.Len() > 0 {
-			balance(candidateRoots.PopMin())
+			balance(candidateRoots.Pop())
 		}
 	}()
 
@@ -249,8 +249,8 @@ func (g *Graph) MaximizeParallelism() {
 
 			for operandNodes.Len() > 0 {
 				// Combine operands with the lowest ranks in the queue
-				var nodeL *Node = operandNodes.PopMin()
-				var nodeR *Node = operandNodes.PopMin()
+				var nodeL *Node = operandNodes.Pop()
+				var nodeR *Node = operandNodes.Pop()
 
 				var nodeT *Node
 				if operandNodes.Len() == 0 {
