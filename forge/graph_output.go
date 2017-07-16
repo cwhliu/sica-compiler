@@ -4,9 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
+	//"strconv"
 )
 
+/*
+OutputDotFile writes out a file in dot format for Graphviz visualization.
+*/
 func (g *Graph) OutputDotFile() {
 	f, _ := os.Create("graph.dot")
 	defer f.Close()
@@ -20,7 +23,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=min\n")
 	for _, node := range g.inputNodes {
 		label := node.name[3:]
-		label += strconv.FormatFloat(node.value, 'f', -1, 64)
+		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
@@ -32,7 +35,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=max\n")
 	for _, node := range g.outputNodes {
 		label := node.name[3:]
-		label += strconv.FormatFloat(node.value, 'f', -1, 64)
+		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect style=\"rounded,filled\""))
@@ -51,8 +54,8 @@ func (g *Graph) OutputDotFile() {
 	// Operation nodes
 	for _, node := range g.operationNodes {
 		label, _ := NodeOpStringLUT[node.op]
-		//label += node.name
-		label += strconv.FormatFloat(node.value, 'f', -1, 64)
+		label += node.name
+		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect label=\"%s\"]\n", label))

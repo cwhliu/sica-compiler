@@ -9,30 +9,30 @@ type parserStack struct {
 // -----------------------------------------------------------------------------
 
 /*
-Check if a token is ready to be popped
+tokenReady checks if a token is ready to be popped.
 
-A token is ready when the top of argument count stack is 0, meaning that
-the token has all the arguments it needs
+A token is ready when the top of the argument count stack is 0, meaning that
+the token has gotten all the arguments it needs.
 */
 func (s *parserStack) tokenReady() bool {
 	return len(s.tokenArgCounts) > 0 && s.tokenArgCounts[len(s.tokenArgCounts)-1] == 0
 }
 
 /*
-Push a non-leaf token to the stack
+pushNonLeafToken pushes a non-leaf token to the stack.
 */
 func (s *parserStack) pushNonLeafToken(token string, argCount int) {
 	s.tokens = append(s.tokens, token)
 
-	// Add one to include the token itself
+	// Add one to account for the token itself
 	s.tokenPopCounts = append(s.tokenPopCounts, argCount+1)
 	s.tokenArgCounts = append(s.tokenArgCounts, argCount)
 }
 
 /*
-Push a leaf token to the stack
+pushLeafToken pushes a leaf token to the stack.
 
-A leaf token is the argument of a predecessor non-leaf token
+A leaf token is an argument of a predecessor non-leaf token.
 */
 func (s *parserStack) pushLeafToken(token string) {
 	s.tokens = append(s.tokens, token)
@@ -43,7 +43,7 @@ func (s *parserStack) pushLeafToken(token string) {
 }
 
 /*
-Pop the top token and its arguments from the stack
+popToken pops the top token and its arguments from the stack.
 */
 func (s *parserStack) popToken() (string, []string) {
 	popCount := s.tokenPopCounts[len(s.tokenPopCounts)-1]

@@ -5,6 +5,9 @@ import (
 	"strconv"
 )
 
+/*
+Graph represents the graph structure built by the parser based on a C++ source file.
+*/
 type Graph struct {
 	allNodes       map[string]*Node
 	inputNodes     map[string]*Node
@@ -16,7 +19,7 @@ type Graph struct {
 // -----------------------------------------------------------------------------
 
 /*
-Create and initialize a graph, and return a pointer to the graph
+CreateGraph creates and returns a pointer to an initialized graph.
 */
 func CreateGraph() *Graph {
 	g := &Graph{}
@@ -31,9 +34,11 @@ func CreateGraph() *Graph {
 }
 
 /*
-Call this function to legitimate the graph after nodes are added to the graph
+Legalize fills in some missing information after the graph is built.
+
+This function should be invoked after the graph is built.
 */
-func (g *Graph) Legitimate() {
+func (g *Graph) Legalize() {
 	// Determine node kind for undetermined nodes and delete internal nodes
 	for name, node := range g.allNodes {
 		if node.kind == NodeKind_Undetermined {
@@ -114,7 +119,9 @@ func (g *Graph) NumConstantNodes() int  { return len(g.constantNodes) }
 // -----------------------------------------------------------------------------
 
 /*
-Add an operation node to the graph
+AddOperationNode adds an operation node to the graph.
+
+Other kinds of nodes should be created by GetNodeByName().
 */
 func (g *Graph) AddOperationNode(opString string) *Node {
 	name := "OPR" + strconv.Itoa(len(g.operationNodes))
@@ -133,7 +140,9 @@ func (g *Graph) AddOperationNode(opString string) *Node {
 }
 
 /*
-Get a node by its name, create the node if it doesn't exist
+GetNodeByName get a node by the name, create the node if it doesn't exist.
+
+Operation nodes should be created by AddOperationNode().
 */
 func (g *Graph) GetNodeByName(name string) *Node {
 	// Create a new node if a node with the same name does not exist
@@ -163,7 +172,7 @@ func (g *Graph) GetNodeByName(name string) *Node {
 }
 
 /*
-Delete a node by its name
+DeleteNodeByName deletes a node by the name from the graph.
 */
 func (g *Graph) DeleteNodeByName(name string) {
 	switch g.allNodes[name].kind {
@@ -182,6 +191,10 @@ func (g *Graph) DeleteNodeByName(name string) {
 
 // -----------------------------------------------------------------------------
 
+/*
+Levelize calculates the level of each node recursively. Input and constant nodes
+are at level 0.
+*/
 func (g *Graph) Levelize() int {
 	var maxLevel int = -10
 
@@ -221,6 +234,10 @@ func (g *Graph) Levelize() int {
 
 // -----------------------------------------------------------------------------
 
+/*
+Eval evaluates all nodes' value. The graph is first levelized and then nodes are
+evaluated starting from the lowest level.
+*/
 func (g *Graph) Eval() {
 	g.Levelize()
 

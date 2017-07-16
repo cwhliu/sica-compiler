@@ -2,6 +2,10 @@ package forge
 
 //import "fmt"
 
+/*
+SimplifyArithmetic simplifies arithmetic operations to reduce the number of
+expensive operations such as multiplication and power.
+*/
 func (g *Graph) SimplifyArithmetic() {
 	for _, node := range g.operationNodes {
 		switch node.op {
@@ -37,13 +41,13 @@ func (g *Graph) SimplifyArithmetic() {
 }
 
 /*
-Eliminate duplicated operations using value numbering
+EliminateDuplicatedOperation eliminates duplicated operations using value numbering.
 
 The graph must be levelized and value numbering needs to start from inputs,
 otherwise a duplicated operation will not be eliminated when its fanout is
-processed before it (this happens if loop over a map because map is not ordered)
+processed beforehand. (this happens if loop over a map because map is not ordered)
 
-See "Engineering a Compiler 2nd Edition, section 8.4.1"
+See "Engineering a Compiler 2nd Edition, section 8.4.1".
 */
 func (g *Graph) EliminateDuplicatedOperation() {
 	// Levelize the graph
@@ -92,15 +96,16 @@ func (g *Graph) EliminateDuplicatedOperation() {
 }
 
 /*
-Maximize parallelism by balancing tree height of the graph in two phases
- The first phase identifies candidate tree roots
- The second phase finds all the operands for a candidate tree and build a
- balanced tree for them
+MaximizeParallelism maximizes the possible parallelism by balancing tree heights
+in the graph in two phases.
 
-See "Engineering a Compiler 2nd Edition, section 8.4.2"
+The first phase identifies candidate tree roots.
+The second phase finds all the operands for a candidate tree and build a
+balanced tree for them.
+
+See "Engineering a Compiler 2nd Edition, section 8.4.2".
 */
 func (g *Graph) MaximizeParallelism() {
-
 	// Phase 1 - analysis
 	// ---------------------------------------------------------------------------
 

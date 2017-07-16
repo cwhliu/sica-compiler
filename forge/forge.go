@@ -2,12 +2,18 @@ package forge
 
 import "fmt"
 
+/*
+Forge is the main compiler instance.
+*/
 type Forge struct {
 	parser Parser
 }
 
-func (f *Forge) Parse(fname string) error {
-	if g, err := f.parser.Parse(fname); err != nil {
+/*
+Parse invokes the parser to parse the C++ source file and build a graph for it.
+*/
+func (f *Forge) Parse(filename string) error {
+	if g, err := f.parser.Parse(filename); err != nil {
 		return err
 	} else {
 		g.EvaluateGolden(1)
@@ -18,8 +24,7 @@ func (f *Forge) Parse(fname string) error {
 
 		g.EvaluateCompare()
 
-		fmt.Printf(" %d operation nodes, %d levels\n",
-			g.NumOperationNodes(), g.Levelize())
+		fmt.Printf(" %d operation nodes, %d levels\n", g.NumOperationNodes(), g.Levelize())
 
 		g.OutputDotFile()
 

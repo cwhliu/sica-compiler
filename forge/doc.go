@@ -1,4 +1,4 @@
 /*
-  Package forge is a compiler for the synchronous instructionless computer architecture (SICA)
+Package forge is a compiler for the synchronous instructionless computer architecture (SICA)
 */
 package forge

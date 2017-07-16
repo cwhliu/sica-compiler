@@ -7,6 +7,9 @@ import (
 	"github.com/cwhliu/go-clang/clang"
 )
 
+/*
+Parser is the main parser instance.
+*/
 type Parser struct {
 	parserStack
 
@@ -14,7 +17,7 @@ type Parser struct {
 }
 
 /*
-Parse a MEX cc file and build a corresponding graph
+Parse parses a C++ source file and builds a corresponding graph.
 */
 func (p *Parser) Parse(fname string) (*Graph, error) {
 	p.graph = CreateGraph()
@@ -91,7 +94,7 @@ func (p *Parser) Parse(fname string) (*Graph, error) {
 		return nil, fmt.Errorf("problem building graph for %s", fname)
 	}
 
-	p.graph.Legitimate()
+	p.graph.Legalize()
 
 	fmt.Println(fname)
 
@@ -102,7 +105,7 @@ func (p *Parser) Parse(fname string) (*Graph, error) {
 // -----------------------------------------------------------------------------
 
 /*
-Parse reference to a declared expression
+parseDeclRefExpr parses references to a declared expression.
 */
 func (p *Parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 	cursorType := cursor.Type().Spelling()
@@ -138,7 +141,7 @@ func (p *Parser) parseDeclRefExpr(cursor clang.Cursor) bool {
 }
 
 /*
-Parse array expression
+parseArraySubscriptExpr parses array expressions.
 */
 func (p *Parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
 	// Push a non-leaf ARR token to the stack
@@ -148,7 +151,7 @@ func (p *Parser) parseArraySubscriptExpr(cursor clang.Cursor) bool {
 }
 
 /*
-Parse literal
+parseLiternal parses literals.
 */
 func (p *Parser) parseLiteral(cursor clang.Cursor) bool {
 	switch cursor.Kind().Spelling() {
@@ -168,7 +171,7 @@ func (p *Parser) parseLiteral(cursor clang.Cursor) bool {
 }
 
 /*
-Parse operator
+parseOperator parses operators.
 */
 func (p *Parser) parseOperator(cursor clang.Cursor) bool {
 	switch cursor.Kind().Spelling() {
@@ -183,6 +186,10 @@ func (p *Parser) parseOperator(cursor clang.Cursor) bool {
 
 // -----------------------------------------------------------------------------
 
+/*
+processStack is invoked when a leaf token is pushed to the stack, and it checks
+the stack to see if tokens are ready to be popped and processed.
+*/
 func (p *Parser) processStack() {
 	// Loop whenever a token is ready to be popped
 	for p.tokenReady() {

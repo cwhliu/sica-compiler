@@ -9,6 +9,10 @@ import (
 var GraphPIs []map[string]float64
 var GraphPOs []map[string]float64
 
+/*
+EvaluateGolden creates a number of sets of random input values, evaluates the
+graph using these input values, and records the output values as the golden result.
+*/
 func (g *Graph) EvaluateGolden(numSets int) {
 	g.Levelize()
 
@@ -32,6 +36,13 @@ func (g *Graph) EvaluateGolden(numSets int) {
 	}
 }
 
+/*
+EvaluateCompare uses the store input values to evaluate the graph, and compares
+the output values against the golden result.
+
+This function is used to verify that a graph retains the same functionality after
+some graph transformation.
+*/
 func (g *Graph) EvaluateCompare() {
 	g.Levelize()
 
