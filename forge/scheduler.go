@@ -7,6 +7,14 @@ type Scheduler struct {
 
 	compCost map[NodeOp]int
 	commCost [][]int
+
+	avgCompCost map[NodeOp]float64
+	avgCommCost [][]float64
+
+	processorInfo map[NodeOp][]int
+	processorSlot [][]*Node
+
+	nodeAFT map[*Node]int
 }
 
 /*
@@ -17,15 +25,33 @@ See "Performance-Effective and Low-Complexity Task Scheduling for Heterogeneous
 Computing" by Haluk Topcuoglu et al. for details.
 */
 func (s *Scheduler) ScheduleHEFT() {
+	s.nodeAFT = make(map[*Node]int)
+	for _, node := range s.graph.inputNodes {
+		s.nodeAFT[node] = 0
+	}
+	for _, node := range s.graph.constantNodes {
+		s.nodeAFT[node] = 0
+	}
+	for _, node := range s.graph.operationNodes {
+		s.nodeAFT[node] = 1000000
+	}
+
 	// Step 1: Set the computation costs of tasks and communication costs of edges
 	//         with mean values.
+	s.avgCompCost = make(map[NodeOp]float64)
+	s.avgCompCost[NodeOp_Add] = float64(s.compCost[NodeOp_Add]) / float64(len(s.processorInfo[NodeOp_Add]))
+	s.avgCompCost[NodeOp_Mul] = float64(s.compCost[NodeOp_Mul]) / float64(len(s.processorInfo[NodeOp_Mul]))
+	s.avgCompCost[NodeOp_Div] = float64(s.compCost[NodeOp_Div]) / float64(len(s.processorInfo[NodeOp_Div]))
+	s.avgCompCost[NodeOp_Sin] = float64(s.compCost[NodeOp_Sin]) / float64(len(s.processorInfo[NodeOp_Sin]))
+	s.avgCompCost[NodeOp_Cos] = s.avgCompCost[NodeOp_Sin]
+	s.avgCompCost[NodeOp_Power] = s.avgCompCost[NodeOp_Mul]
 
 	// Step 2: Compute rank_u for all tasks by traversing graph upward, starting
 	//         from the exist tasks.
 	maxLevel := s.graph.Levelize()
 
-	maxURank := -100
-	uRanks := make(map[*Node]int)
+	maxURank := -100.0
+	uRanks := make(map[*Node]float64)
 
 	pq := CreateNodePQ()
 	for _, node := range s.graph.operationNodes {
@@ -35,9 +61,9 @@ func (s *Scheduler) ScheduleHEFT() {
 	for pq.Len() > 0 {
 		node := pq.Pop()
 
-		uRank := -100
+		uRank := -100.0
 		for _, fo := range node.fanouts {
-			foURank := 0
+			foURank := 0.0
 			if fo.kind != NodeKind_Output {
 				foURank += uRanks[fo]
 			}
@@ -47,7 +73,7 @@ func (s *Scheduler) ScheduleHEFT() {
 				uRank = foURank
 			}
 		}
-		uRank += 1 // comp
+		uRank += s.avgCompCost[node.op]
 
 		uRanks[node] = uRank
 
@@ -67,11 +93,51 @@ func (s *Scheduler) ScheduleHEFT() {
 		// Step 5: Select the first task from the list for scheduling.
 		node := pq.Pop()
 
-		// Step 6: For each processor in the processor-set do
+		minEST := 1000000
+		minEFT := 1000000
+		minEFTProcessor := -1
 
-		// Step 7: Compute EFT value using the insertion-based scheduling policy.
+		// Step 6: For each processor in the processor-set do
+		for _, processor := range s.processorInfo[node.op] {
+			// Step 7: Compute EFT value using the insertion-based scheduling policy.
+			EST, EFT := s.computeEFT(node, processor)
+
+			if EFT < minEFT {
+				minEST = EST
+				minEFT = EFT
+				minEFTProcessor = processor
+			}
+		}
 
 		// Step 8: Assign task to the processor that minimizes EFT of task.
-		node.name = node.name
+		s.processorSlot[minEFTProcessor][minEST] = node
+		s.nodeAFT[node] = minEFT
 	}
+}
+
+/*
+computeEFT computes the earliest finish time for a node that can be scheduled
+to a list of processors.
+*/
+func (s *Scheduler) computeEFT(node *Node, processor int) (int, int) {
+	EST := 0
+
+	for _, fi := range node.fanins {
+		dataReadyTime := s.nodeAFT[fi] // + comm
+
+		if dataReadyTime > EST {
+			EST = dataReadyTime
+		}
+	}
+
+	// Temporary
+	if EST > len(s.processorSlot[processor]) {
+		return EST, EST
+	}
+
+	for s.processorSlot[processor][EST] != nil {
+		EST++
+	}
+
+	return EST, EST + s.compCost[node.op]
 }
