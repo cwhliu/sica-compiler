@@ -13,8 +13,6 @@ type Scheduler struct {
 
 	processorInfo map[NodeOp][]int
 	processorSlot [][]*Node
-
-	nodeAFT map[*Node]int
 }
 
 /*
@@ -25,15 +23,15 @@ See "Performance-Effective and Low-Complexity Task Scheduling for Heterogeneous
 Computing" by Haluk Topcuoglu et al. for details.
 */
 func (s *Scheduler) ScheduleHEFT() {
-	s.nodeAFT = make(map[*Node]int)
-	for _, node := range s.graph.inputNodes {
-		s.nodeAFT[node] = 0
-	}
-	for _, node := range s.graph.constantNodes {
-		s.nodeAFT[node] = 0
-	}
-	for _, node := range s.graph.operationNodes {
-		s.nodeAFT[node] = 1000000
+	for _, node := range s.graph.allNodes {
+		switch node.kind {
+		case NodeKind_Input, NodeKind_Constant:
+			node.actualStartTime = 0
+			node.actualFinishTime = 0
+		default:
+			node.actualStartTime = 1000000
+			node.actualFinishTime = 1000000
+		}
 	}
 
 	// Step 1: Set the computation costs of tasks and communication costs of edges
@@ -111,7 +109,10 @@ func (s *Scheduler) ScheduleHEFT() {
 
 		// Step 8: Assign task to the processor that minimizes EFT of task.
 		s.processorSlot[minEFTProcessor][minEST] = node
-		s.nodeAFT[node] = minEFT
+
+		node.actualStartTime = minEST
+		node.actualFinishTime = minEFT
+		node.processorAssigned = minEFTProcessor
 	}
 }
 
@@ -123,7 +124,7 @@ func (s *Scheduler) computeEFT(node *Node, processor int) (int, int) {
 	EST := 0
 
 	for _, fi := range node.fanins {
-		dataReadyTime := s.nodeAFT[fi] // + comm
+		dataReadyTime := fi.actualFinishTime // + comm
 
 		if dataReadyTime > EST {
 			EST = dataReadyTime

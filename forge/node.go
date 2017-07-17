@@ -21,6 +21,10 @@ type Node struct {
 	faninSigns []bool
 
 	value float64
+
+	actualStartTime   int
+	actualFinishTime  int
+	processorAssigned int
 }
 
 /*

@@ -28,8 +28,6 @@ func (f *Forge) BuildGraph(filename string) error {
 
 		fmt.Printf(" %d operation nodes, %d levels\n", g.NumOperationNodes(), g.Levelize())
 
-		g.OutputDotFile()
-
 		// Pass the graph to the scheduler
 		f.scheduler.graph = g
 
@@ -44,4 +42,8 @@ func (f *Forge) ScheduleGraph() {
 	f.scheduler.ConfigureHW()
 
 	f.scheduler.ScheduleHEFT()
+}
+
+func (f *Forge) Output() {
+	f.scheduler.graph.OutputDotFile()
 }

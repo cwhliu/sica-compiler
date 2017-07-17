@@ -20,4 +20,6 @@ func main() {
 	}
 
 	f.ScheduleGraph()
+
+	f.Output()
 }
