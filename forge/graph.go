@@ -17,6 +17,9 @@ type Graph struct {
 
 	inputValues  []map[string]float64
 	outputValues []map[string]float64
+
+	isLevelized bool // clear this flag whenever the graph structure is modified
+	maxLevel    int
 }
 
 // -----------------------------------------------------------------------------
@@ -109,6 +112,8 @@ func (g *Graph) Legalize() {
 	for _, n := range g.constantNodes {
 		n.value, _ = strconv.ParseFloat(n.name[3:], 64)
 	}
+
+	g.isLevelized = false
 }
 
 // -----------------------------------------------------------------------------
@@ -138,6 +143,8 @@ func (g *Graph) AddOperationNode(opString string) *Node {
 
 	g.allNodes[name] = newNode
 	g.operationNodes[name] = newNode
+
+	g.isLevelized = false
 
 	return newNode
 }
@@ -171,6 +178,8 @@ func (g *Graph) GetNodeByName(name string) *Node {
 		g.allNodes[name] = newNode
 	}
 
+	g.isLevelized = false
+
 	return g.allNodes[name]
 }
 
@@ -188,6 +197,8 @@ func (g *Graph) DeleteNodeByName(name string) {
 	case NodeKind_Constant:
 		delete(g.constantNodes, name)
 	}
+
+	g.isLevelized = false
 
 	delete(g.allNodes, name)
 }
@@ -210,8 +221,14 @@ Levelize calculates the level of each node recursively. Input and constant nodes
 are at level 0.
 */
 func (g *Graph) Levelize() int {
-	var maxLevel int = -10
+	if g.isLevelized {
+		return g.maxLevel
+	}
 
+	// Reset graph maximum level
+	g.maxLevel = -1000
+
+	// Reset all node level
 	for _, node := range g.allNodes {
 		node.level = -1
 	}
@@ -233,8 +250,8 @@ func (g *Graph) Levelize() int {
 
 			n.level = max + 1
 
-			if n.level > maxLevel {
-				maxLevel = n.level
+			if n.level > g.maxLevel {
+				g.maxLevel = n.level
 			}
 		}
 	}
@@ -243,7 +260,9 @@ func (g *Graph) Levelize() int {
 		levelize(node)
 	}
 
-	return maxLevel
+	g.isLevelized = true
+
+	return g.maxLevel
 }
 
 // -----------------------------------------------------------------------------

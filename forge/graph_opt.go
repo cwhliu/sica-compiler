@@ -38,6 +38,8 @@ func (g *Graph) SimplifyArithmetic() {
 			}
 		}
 	}
+
+	g.isLevelized = false
 }
 
 /*
@@ -93,6 +95,8 @@ func (g *Graph) EliminateDuplicatedOperation() {
 			g.DeleteNodeByName(node.name)
 		}
 	}
+
+	g.isLevelized = false
 }
 
 /*
@@ -285,4 +289,6 @@ func (g *Graph) MaximizeParallelism() {
 			}
 		} // func rebuild
 	} // func balance
+
+	g.isLevelized = false
 }
