@@ -44,20 +44,23 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("}\n")
 
 	// Constant nodes
+	w.WriteString("{rank=min\n")
 	for _, node := range g.constantNodes {
 		label := node.name[3:]
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=plaintext label=\"%s\"]\n", label))
 	}
+	w.WriteString("}\n")
 
 	// Operation nodes
 	for _, node := range g.operationNodes {
 		label, _ := NodeOpStringLUT[node.op]
 		//label += node.name
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
-		label += strconv.FormatInt(int64(node.actualStartTime), 10)
-		label += "(" + strconv.FormatInt(int64(node.processorAssigned), 10) + ")"
+		label = ""
+		label += "P" + strconv.FormatInt(int64(node.processorAssigned), 10)
+		label += " (T" + strconv.FormatInt(int64(node.actualStartTime), 10) + ")"
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect label=\"%s\"]\n", label))
