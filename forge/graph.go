@@ -287,3 +287,51 @@ func (g *Graph) Eval() {
 		node.Eval()
 	}
 }
+
+// -----------------------------------------------------------------------------
+
+func (g *Graph) Analyze() {
+	g.Levelize()
+
+	fmt.Printf(" %d operation nodes, %d levels\n", g.NumOperationNodes(), g.maxLevel)
+
+	// Fanout number statistics
+	fanoutCounter := [1000]int{}
+	for _, node := range g.operationNodes {
+		fanoutCounter[node.NumFanouts()]++
+	}
+	fmt.Printf(" Fanout statistics: ")
+	for i := 1; i < 1000; i++ {
+		if fanoutCounter[i] > 0 {
+			fmt.Printf("%d=%d ", i, fanoutCounter[i])
+		}
+	}
+	fmt.Printf("\n")
+
+	// Fanout level difference statistics
+	fanoutLevelDiff := map[*Node]int{}
+	fanoutLevelDiffCounter := [1000]int{}
+	for _, node := range g.operationNodes {
+		minFoLevel := 100
+		maxFoLevel := -100
+		for _, fo := range node.fanouts {
+			if fo.level < minFoLevel {
+				minFoLevel = fo.level
+			}
+			if fo.level > maxFoLevel {
+				maxFoLevel = fo.level
+			}
+		}
+		fanoutLevelDiff[node] = maxFoLevel - minFoLevel
+	}
+	for _, diff := range fanoutLevelDiff {
+		fanoutLevelDiffCounter[diff]++
+	}
+	fmt.Printf(" Fanout level difference statistics: ")
+	for i := 1; i < 1000; i++ {
+		if fanoutLevelDiffCounter[i] > 0 {
+			fmt.Printf("%d=%d ", i, fanoutLevelDiffCounter[i])
+		}
+	}
+	fmt.Printf("\n")
+}

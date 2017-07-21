@@ -1,6 +1,6 @@
 package forge
 
-import "fmt"
+//import "fmt"
 
 /*
 Forge is the main compiler instance.
@@ -26,18 +26,7 @@ func (f *Forge) BuildGraph(filename string) error {
 
 		g.EvaluateCompare()
 
-		fmt.Printf(" %d operation nodes, %d levels\n", g.NumOperationNodes(), g.Levelize())
-
-		//fanoutCounter := [1000]int{}
-		//for _, node := range g.operationNodes {
-		//  fanoutCounter[node.NumFanouts()]++
-		//}
-		//for i := 1; i < 1000; i++ {
-		//  if (fanoutCounter[i] > 0) {
-		//    fmt.Printf(" %d=%d", i, fanoutCounter[i])
-		//  }
-		//}
-		//fmt.Printf("\n")
+		g.Analyze()
 
 		// Pass the graph to the scheduler
 		f.scheduler.graph = g
