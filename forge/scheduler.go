@@ -1,6 +1,6 @@
 package forge
 
-import "fmt"
+//import "fmt"
 
 type Scheduler struct {
 	graph *Graph
@@ -126,23 +126,23 @@ func (s *Scheduler) ScheduleHEFT() {
 		node.processorAssigned = minEFTProcessor
 	}
 
-	for p := 0; p < len(s.processorSlot); p++ {
-		buf0Max := -100
-		buf1Max := -100
+	//for p := 0; p < len(s.processorSlot); p++ {
+	//	buf0Max := -100
+	//	buf1Max := -100
 
-		for _, v := range s.processorBuf0[p] {
-			if v > buf0Max {
-				buf0Max = v
-			}
-		}
-		for _, v := range s.processorBuf1[p] {
-			if v > buf1Max {
-				buf1Max = v
-			}
-		}
+	//	for _, v := range s.processorBuf0[p] {
+	//		if v > buf0Max {
+	//			buf0Max = v
+	//		}
+	//	}
+	//	for _, v := range s.processorBuf1[p] {
+	//		if v > buf1Max {
+	//			buf1Max = v
+	//		}
+	//	}
 
-		fmt.Println(p, buf0Max, buf1Max)
-	}
+	//	fmt.Println(p, buf0Max, buf1Max)
+	//}
 }
 
 /*

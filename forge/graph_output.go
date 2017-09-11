@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strconv"
+	//"strconv"
 )
 
 /*
@@ -58,9 +58,9 @@ func (g *Graph) OutputDotFile() {
 		label, _ := NodeOpStringLUT[node.op]
 		//label += node.name
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
-		label = ""
-		label += "P" + strconv.FormatInt(int64(node.processorAssigned), 10)
-		label += " (T" + strconv.FormatInt(int64(node.actualStartTime), 10) + ")"
+		//label = ""
+		//label += "P" + strconv.FormatInt(int64(node.processorAssigned), 10)
+		//label += " (T" + strconv.FormatInt(int64(node.actualStartTime), 10) + ")"
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=rect label=\"%s\"]\n", label))
