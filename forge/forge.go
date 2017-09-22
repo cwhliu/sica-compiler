@@ -17,7 +17,7 @@ func (f *Forge) BuildGraph(filename string) error {
 	if g, err := f.parser.Parse(filename); err != nil {
 		return err
 	} else {
-    // Evaluate the graph with random inputs and set the outputs as golden
+		// Evaluate the graph with random inputs and set the outputs as golden
 		g.EvaluateGolden(1)
 
 		g.SimplifyArithmetic()
@@ -25,7 +25,7 @@ func (f *Forge) BuildGraph(filename string) error {
 		g.MaximizeParallelism()
 		g.DeleteUnusedNodes()
 
-    // Evaluate the graph again using the same inputs and compare with the golden outputs
+		// Evaluate the graph again using the same inputs and compare with the golden outputs
 		g.EvaluateCompare()
 
 		g.Analyze()
@@ -43,7 +43,8 @@ ScheduleGraph schedules the operations in the graph onto the hardware accelerato
 func (f *Forge) ScheduleGraph() {
 	f.scheduler.ConfigureHW()
 
-	f.scheduler.ScheduleHEFT()
+	//f.scheduler.ScheduleHEFT()
+	f.scheduler.Schedule()
 }
 
 func (f *Forge) Output() {

@@ -18,6 +18,7 @@ func (g *Graph) OutputDotFile() {
 
 	w.WriteString("digraph demo {\n")
 	w.WriteString("rankdir=TB\n")
+	//w.WriteString("ranksep=2\n")
 
 	// Input nodes
 	w.WriteString("{rank=min\n")
@@ -56,7 +57,7 @@ func (g *Graph) OutputDotFile() {
 	// Operation nodes
 	for _, node := range g.operationNodes {
 		label, _ := NodeOpStringLUT[node.op]
-		//label += node.name
+		label += node.name
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 		//label = ""
 		//label += "P" + strconv.FormatInt(int64(node.processorAssigned), 10)

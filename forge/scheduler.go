@@ -1,6 +1,6 @@
 package forge
 
-//import "fmt"
+import "fmt"
 
 type Scheduler struct {
 	graph *Graph
@@ -170,4 +170,170 @@ func (s *Scheduler) computeEFT(node *Node, processor int) (int, int) {
 	}
 
 	return EST, EST + s.compCost[node.op]
+}
+
+/*
+Schedule performs heuristic scheduling.
+*/
+func (s *Scheduler) Schedule() {
+	externalNodes := make(map[string]int)
+	for key, _ := range s.graph.inputNodes {
+		externalNodes[key] = len(externalNodes)
+	}
+	for key, _ := range s.graph.constantNodes {
+		externalNodes[key] = len(externalNodes)
+	}
+	numExternalNodes := len(externalNodes) + 1
+
+	roots := CreateNodePQ()
+
+	rootInputs := make(map[string][]bool)
+
+	// Find all tree roots
+	for _, node := range s.graph.operationNodes {
+		// A tree root has either multiple fanouts, or a single fanout to an output
+		if (node.NumFanouts() > 1) ||
+			(node.NumFanouts() == 1 && node.Fanout(0).kind == NodeKind_Output) {
+			maxFaninLevel := 0
+			sumInputFanouts := 0
+
+			traversedExternalNodes := make(map[string]bool)
+
+			rootInputs[node.name] = make([]bool, numExternalNodes)
+
+			var traverse func(*Node)
+			traverse = func(n *Node) { // must use a name different from "node"
+				for _, fanin := range n.fanins {
+					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
+						// External input or constant
+						if _, exist := traversedExternalNodes[fanin.name]; !exist {
+							//fmt.Printf(" %s", fanin.name)
+
+							traversedExternalNodes[fanin.name] = true
+							sumInputFanouts += fanin.NumFanouts()
+
+							rootInputs[node.name][externalNodes[fanin.name]] = true
+						}
+					} else if fanin.NumFanouts() > 1 {
+						// Another tree root
+						//fmt.Printf(" %s", fanin.name)
+
+						if fanin.level > maxFaninLevel {
+							maxFaninLevel = fanin.level
+						}
+					} else {
+						traverse(fanin)
+					}
+				}
+			}
+
+			//fmt.Printf("%s @%d   ", node.name, node.level)
+			traverse(node)
+			//fmt.Printf(" | %d %d\n", maxFaninLevel, sumInputFanouts)
+
+			roots.Push(NodePQEntry{node, -(1000*(100-maxFaninLevel) + sumInputFanouts)})
+		}
+	}
+
+	//for i := 0; i < roots.Len(); i++ {
+	//  nodeI := roots.GetNodeByIndex(i)
+
+	//  maxNumCommonInput := -1
+	//  similarRoot := ""
+
+	//  for j := 0; j < roots.Len(); j++ {
+	//    if (i != j) {
+	//      nodeJ := roots.GetNodeByIndex(j)
+
+	//      numCommonInput := 0
+
+	//      for idx := 0; idx < numExternalNodes; idx++ {
+	//        if rootInputs[nodeI.name][idx] && rootInputs[nodeJ.name][idx] {
+	//          numCommonInput++
+	//        }
+	//      }
+
+	//      if numCommonInput > maxNumCommonInput {
+	//        maxNumCommonInput = numCommonInput
+	//        similarRoot = nodeJ.name
+	//      }
+	//    }
+	//  }
+
+	//  fmt.Printf("%s ~= %s (%d)\n", nodeI.name, similarRoot, maxNumCommonInput)
+	//}
+	//fmt.Printf("\n")
+
+	for roots.Len() > 0 {
+		var list []*Node
+
+		entry := roots.PopEntry()
+		list = append(list, entry.Payload)
+
+		priority := entry.Priority.(int)
+		//fmt.Printf("%s ", entry.Payload.name)
+
+		for roots.Len() > 0 {
+			entry := roots.PopEntry()
+
+			if priority != entry.Priority.(int) {
+				roots.Push(entry)
+				break
+			}
+
+			//fmt.Printf("%s ", entry.Payload.name)
+			list = append(list, entry.Payload)
+		}
+
+		fmt.Printf("List length = %d\n", len(list))
+
+		for len(list) > 0 {
+			nodeI := list[0]
+			fmt.Printf("%s\n", nodeI.name)
+
+			maxNumCommonInput := -1
+			//similarRoot := ""
+			similarRootIdx := -1
+
+			for j := 1; j < len(list); j++ {
+				nodeJ := list[j]
+
+				numCommonInput := 0
+
+				for idx := 0; idx < numExternalNodes; idx++ {
+					if rootInputs[nodeI.name][idx] && rootInputs[nodeJ.name][idx] {
+						numCommonInput++
+					}
+				}
+
+				if numCommonInput > maxNumCommonInput {
+					maxNumCommonInput = numCommonInput
+					//similarRoot = nodeJ.name
+					similarRootIdx = j
+				}
+			}
+
+			if len(list) == 1 {
+				break
+			} else {
+				list[0] = list[similarRootIdx]
+				list = append(list[:similarRootIdx], list[similarRootIdx+1:]...)
+			}
+
+			//fmt.Printf("%s ~= %s (%d)\n", nodeI.name, similarRoot, maxNumCommonInput)
+		}
+		//fmt.Printf("\n")
+
+		//node, priority := entry.Payload, entry.Priority.(int)
+
+		//fmt.Printf("%s %d, ", node.name, priority)
+		//for i := 0; i < numExternalNodes; i++ {
+		//  if rootInputs[node.name][i] {
+		//    fmt.Printf("1")
+		//  } else {
+		//    fmt.Printf("0")
+		//  }
+		//}
+		//fmt.Printf("\n")
+	}
 }

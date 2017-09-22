@@ -298,7 +298,15 @@ func (g *Graph) Analyze() {
 	// Fanout number statistics
 	fanoutCounter := [1000]int{}
 	for _, node := range g.operationNodes {
-		fanoutCounter[node.NumFanouts()]++
+		numFanouts := 0
+
+		for _, fo := range node.fanouts {
+			if fo.kind != NodeKind_Output {
+				numFanouts++
+			}
+		}
+
+		fanoutCounter[numFanouts]++
 	}
 	fmt.Printf(" Fanout statistics: ")
 	for i := 1; i < 1000; i++ {
