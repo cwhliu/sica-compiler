@@ -46,10 +46,17 @@ Push pushes a new entry to the priority queue.
 func (PQ *NodePQ) Push(n NodePQEntry) { heap.Push(PQ.pq, n) }
 
 /*
-Pop pops an entry with the minimum priority from the priority queue.
+Pop pops a node with the minimum priority from the priority queue.
 */
 func (PQ *NodePQ) Pop() *Node {
 	return heap.Pop(PQ.pq).(NodePQEntry).Payload
+}
+
+/*
+PopEntry pops an entry with the minimum priority from the priority queue.
+*/
+func (PQ *NodePQ) PopEntry() NodePQEntry {
+	return heap.Pop(PQ.pq).(NodePQEntry)
 }
 
 /*
