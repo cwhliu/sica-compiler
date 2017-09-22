@@ -82,15 +82,15 @@ func (s *Scheduler) ScheduleHEFT() {
 		}
 	}
 
-	// Step 3: Sort the tasks in a scheduling list by nonincreasing order of
+	// Step 3: Sort the tasks in a scheduling samePriorityRoots by nonincreasing order of
 	//         rank_u values.
 	for node, uRank := range uRanks {
 		pq.Push(NodePQEntry{node, maxURank - uRank})
 	}
 
-	// Step 4: While there are unscheduled tasks in the list do
+	// Step 4: While there are unscheduled tasks in the samePriorityRoots do
 	for pq.Len() > 0 {
-		// Step 5: Select the first task from the list for scheduling.
+		// Step 5: Select the first task from the samePriorityRoots for scheduling.
 		node := pq.Pop()
 
 		minEST := 1000000
@@ -147,7 +147,7 @@ func (s *Scheduler) ScheduleHEFT() {
 
 /*
 computeEFT computes the earliest finish time for a node that can be scheduled
-to a list of processors.
+to a samePriorityRoots of processors.
 */
 func (s *Scheduler) computeEFT(node *Node, processor int) (int, int) {
 	EST := 0
@@ -176,164 +176,138 @@ func (s *Scheduler) computeEFT(node *Node, processor int) (int, int) {
 Schedule performs heuristic scheduling.
 */
 func (s *Scheduler) Schedule() {
-	externalNodes := make(map[string]int)
+	// This maps the name of an external node (input or constant) to a number
+	// for quick search and comparison.
+	extNodeIDs := make(map[string]int)
 	for key, _ := range s.graph.inputNodes {
-		externalNodes[key] = len(externalNodes)
+		extNodeIDs[key] = len(extNodeIDs)
 	}
 	for key, _ := range s.graph.constantNodes {
-		externalNodes[key] = len(externalNodes)
+		extNodeIDs[key] = len(extNodeIDs)
 	}
-	numExternalNodes := len(externalNodes) + 1
+	numExtNodes := len(extNodeIDs) + 1
 
 	roots := CreateNodePQ()
 
-	rootInputs := make(map[string][]bool)
+	// This maps the name of a root node to a samePriorityRoots of boolean values. Each
+	// boolean value represents if the external node is used by the root node.
+	rootExtNodes := make(map[string][]bool)
 
-	// Find all tree roots
+	// Find all roots.
 	for _, node := range s.graph.operationNodes {
-		// A tree root has either multiple fanouts, or a single fanout to an output
+		// A root has either multiple fanouts, or a single fanout to an output.
 		if (node.NumFanouts() > 1) ||
 			(node.NumFanouts() == 1 && node.Fanout(0).kind == NodeKind_Output) {
-			maxFaninLevel := 0
-			sumInputFanouts := 0
+			// Now we have a root node, we need to traverse it and calculate some numbers.
 
-			traversedExternalNodes := make(map[string]bool)
+			// Allocate a samePriorityRoots for noting external nodes this root uses.
+			rootExtNodes[node.name] = make([]bool, numExtNodes)
 
-			rootInputs[node.name] = make([]bool, numExternalNodes)
+			// Maximum level of input to this root.
+			maxInputLevel := 0
+			// Total number of fanouts of the external nodes that are used by this root.
+			sumExtNodeFanouts := 0
 
+			// Keep track of traversed external nodes to avoid duplication.
+			traversedExtNodes := make(map[string]bool)
+
+			// This function recursively traverses a given node back to its inputs.
 			var traverse func(*Node)
-			traverse = func(n *Node) { // must use a name different from "node"
+			traverse = func(n *Node) {
 				for _, fanin := range n.fanins {
 					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
-						// External input or constant
-						if _, exist := traversedExternalNodes[fanin.name]; !exist {
-							//fmt.Printf(" %s", fanin.name)
+						if _, exist := traversedExtNodes[fanin.name]; !exist {
+							// fanin is a not yet traversed external nodes.
 
-							traversedExternalNodes[fanin.name] = true
-							sumInputFanouts += fanin.NumFanouts()
+							traversedExtNodes[fanin.name] = true
+							sumExtNodeFanouts += fanin.NumFanouts()
 
-							rootInputs[node.name][externalNodes[fanin.name]] = true
+							rootExtNodes[node.name][extNodeIDs[fanin.name]] = true
 						}
 					} else if fanin.NumFanouts() > 1 {
-						// Another tree root
-						//fmt.Printf(" %s", fanin.name)
+						// fanin is another root.
 
-						if fanin.level > maxFaninLevel {
-							maxFaninLevel = fanin.level
+						if fanin.level > maxInputLevel {
+							maxInputLevel = fanin.level
 						}
 					} else {
 						traverse(fanin)
 					}
 				}
 			}
-
-			//fmt.Printf("%s @%d   ", node.name, node.level)
 			traverse(node)
-			//fmt.Printf(" | %d %d\n", maxFaninLevel, sumInputFanouts)
 
-			roots.Push(NodePQEntry{node, -(1000*(100-maxFaninLevel) + sumInputFanouts)})
+			priority := -(1000*(100-maxInputLevel) + sumExtNodeFanouts)
+
+			roots.Push(NodePQEntry{node, priority})
 		}
 	}
 
-	//for i := 0; i < roots.Len(); i++ {
-	//  nodeI := roots.GetNodeByIndex(i)
-
-	//  maxNumCommonInput := -1
-	//  similarRoot := ""
-
-	//  for j := 0; j < roots.Len(); j++ {
-	//    if (i != j) {
-	//      nodeJ := roots.GetNodeByIndex(j)
-
-	//      numCommonInput := 0
-
-	//      for idx := 0; idx < numExternalNodes; idx++ {
-	//        if rootInputs[nodeI.name][idx] && rootInputs[nodeJ.name][idx] {
-	//          numCommonInput++
-	//        }
-	//      }
-
-	//      if numCommonInput > maxNumCommonInput {
-	//        maxNumCommonInput = numCommonInput
-	//        similarRoot = nodeJ.name
-	//      }
-	//    }
-	//  }
-
-	//  fmt.Printf("%s ~= %s (%d)\n", nodeI.name, similarRoot, maxNumCommonInput)
-	//}
-	//fmt.Printf("\n")
-
+	// roots now contains root nodes sorted by their priority, let's process them.
 	for roots.Len() > 0 {
-		var list []*Node
-
+		// Get the first priority root.
 		entry := roots.PopEntry()
-		list = append(list, entry.Payload)
-
 		priority := entry.Priority.(int)
-		//fmt.Printf("%s ", entry.Payload.name)
 
+		// A list of roots having the same priority. These roots will be processed
+		// in the order of similarity.
+		var samePriorityRoots []*Node
+		samePriorityRoots = append(samePriorityRoots, entry.Payload)
+
+		// Now find all roots having the same priority.
 		for roots.Len() > 0 {
 			entry := roots.PopEntry()
 
+			// If the next root has a different priority, push it back and we're done finding.
 			if priority != entry.Priority.(int) {
 				roots.Push(entry)
 				break
 			}
 
-			//fmt.Printf("%s ", entry.Payload.name)
-			list = append(list, entry.Payload)
+			samePriorityRoots = append(samePriorityRoots, entry.Payload)
 		}
 
-		fmt.Printf("List length = %d\n", len(list))
+		fmt.Printf("List length = %d\n", len(samePriorityRoots))
 
-		for len(list) > 0 {
-			nodeI := list[0]
-			fmt.Printf("%s\n", nodeI.name)
+		// Now we have a list of one or more roots, having the same priority.
+		// We start from the first one, then the one having the most common external
+		// nodes with it, and so on.
+		for len(samePriorityRoots) > 0 {
+			root := samePriorityRoots[0]
 
-			maxNumCommonInput := -1
-			//similarRoot := ""
+			fmt.Printf("%s\n", root.name)
+
+			// We're done if there's only one root left.
+			if len(samePriorityRoots) == 1 {
+				break
+			}
+
+			// Maximum number of common external nodes.
+			maxNumCommon := -1
+			// Which other root is the most similar to this one.
 			similarRootIdx := -1
 
-			for j := 1; j < len(list); j++ {
-				nodeJ := list[j]
+			for i := 1; i < len(samePriorityRoots); i++ {
+				node := samePriorityRoots[i]
 
-				numCommonInput := 0
-
-				for idx := 0; idx < numExternalNodes; idx++ {
-					if rootInputs[nodeI.name][idx] && rootInputs[nodeJ.name][idx] {
-						numCommonInput++
+				// Count how many common external nodes these two roots have.
+				numCommonExtNodes := 0
+				for idx := 0; idx < numExtNodes; idx++ {
+					if rootExtNodes[root.name][idx] && rootExtNodes[node.name][idx] {
+						numCommonExtNodes++
 					}
 				}
 
-				if numCommonInput > maxNumCommonInput {
-					maxNumCommonInput = numCommonInput
-					//similarRoot = nodeJ.name
-					similarRootIdx = j
+				if numCommonExtNodes > maxNumCommon {
+					maxNumCommon = numCommonExtNodes
+					similarRootIdx = i
 				}
 			}
 
-			if len(list) == 1 {
-				break
-			} else {
-				list[0] = list[similarRootIdx]
-				list = append(list[:similarRootIdx], list[similarRootIdx+1:]...)
-			}
-
-			//fmt.Printf("%s ~= %s (%d)\n", nodeI.name, similarRoot, maxNumCommonInput)
+			// Relocate the most similar root to the front.
+			samePriorityRoots[0] = samePriorityRoots[similarRootIdx]
+			samePriorityRoots = append(
+				samePriorityRoots[:similarRootIdx], samePriorityRoots[similarRootIdx+1:]...)
 		}
-		//fmt.Printf("\n")
-
-		//node, priority := entry.Payload, entry.Priority.(int)
-
-		//fmt.Printf("%s %d, ", node.name, priority)
-		//for i := 0; i < numExternalNodes; i++ {
-		//  if rootInputs[node.name][i] {
-		//    fmt.Printf("1")
-		//  } else {
-		//    fmt.Printf("0")
-		//  }
-		//}
-		//fmt.Printf("\n")
 	}
 }
