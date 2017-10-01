@@ -25,6 +25,12 @@ type Node struct {
 	actualStartTime   int
 	actualFinishTime  int
 	processorAssigned int
+
+	isScheduled bool
+	pgScheduled int
+	peScheduled int
+	startTime   int
+	finishTime  int
 }
 
 /*
@@ -36,6 +42,12 @@ func CreateNode(name string, kind NodeKind, op NodeOp) *Node {
 	node.name = name
 	node.kind = kind
 	node.op = op
+
+	node.isScheduled = false
+	node.pgScheduled = -1
+	node.peScheduled = -1
+	node.startTime = -1
+	node.finishTime = -1
 
 	return node
 }

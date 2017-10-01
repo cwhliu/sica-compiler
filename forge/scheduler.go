@@ -1,9 +1,14 @@
 package forge
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Scheduler struct {
 	graph *Graph
+
+	processor *Processor
 
 	compCost map[NodeOp]int
 	commCost [][]int
@@ -193,6 +198,8 @@ func (s *Scheduler) Schedule() {
 	// boolean value represents if the external node is used by the root node.
 	rootExtNodes := make(map[string][]bool)
 
+	fmt.Println("Partitioning the graph ...")
+
 	// Find all roots.
 	for _, node := range s.graph.operationNodes {
 		// A root has either multiple fanouts, or a single fanout to an output.
@@ -243,6 +250,11 @@ func (s *Scheduler) Schedule() {
 		}
 	}
 
+	fmt.Println("Scheduling the graph ...")
+
+	curPG := 0
+	inputMap := make(map[string]int)
+
 	// roots now contains root nodes sorted by their priority, let's process them.
 	for roots.Len() > 0 {
 		// Get the first priority root.
@@ -276,6 +288,171 @@ func (s *Scheduler) Schedule() {
 			root := samePriorityRoots[0]
 
 			fmt.Printf("%s\n", root.name)
+			var traverse func(*Node)
+			traverse = func(n *Node) {
+				// DFS
+				for _, fanin := range n.fanins {
+					if fanin.NumFanouts() == 1 &&
+						fanin.kind != NodeKind_Input && fanin.kind != NodeKind_Constant {
+						traverse(fanin)
+					}
+				}
+
+				earliestArrivalTime := 32767
+				latestArrivalTime := 0
+				bestPG := -1
+				bestPE := -1
+				scheduleTime := -1
+
+				pgSearchStart := 0
+				pgSearchStop := 2
+
+				// If this node has external fanin, force it to be scheduled at the current
+				// processing group by limiting the search range.
+				for _, fanin := range n.fanins {
+					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
+						pgSearchStart = curPG
+						pgSearchStop = curPG + 1
+					}
+				}
+
+				for pgId := pgSearchStart; pgId < pgSearchStop; pgId++ {
+					pg := s.processor.processingGroups[pgId]
+
+					inputLine := -1
+					inputTime := -1
+
+					for _, fanin := range n.fanins {
+						if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
+							key := fanin.name + "@" + strconv.FormatInt(int64(pgId), 10)
+
+							if _, exist := inputMap[key]; !exist {
+								inputLine, inputTime = pg.GetEarliestInputSlot(inputLine, inputTime)
+
+								if inputTime < earliestArrivalTime {
+									earliestArrivalTime = inputTime
+								}
+								if inputTime > latestArrivalTime {
+									latestArrivalTime = inputTime
+								}
+							} else {
+								if inputMap[key] < earliestArrivalTime {
+									earliestArrivalTime = inputMap[key]
+								}
+								if inputMap[key] > latestArrivalTime {
+									latestArrivalTime = inputMap[key]
+								}
+							}
+						} else {
+							arrivalTime := fanin.finishTime
+
+							if fanin.pgScheduled != pgId {
+								arrivalTime++
+							}
+
+							if arrivalTime < earliestArrivalTime {
+								earliestArrivalTime = arrivalTime
+							}
+							if arrivalTime > latestArrivalTime {
+								latestArrivalTime = arrivalTime
+							}
+						}
+					}
+
+					peSearchStart := -1
+					peSearchStop := -1
+
+					switch n.op {
+					case NodeOp_Add:
+						{
+							peSearchStart = 0
+							peSearchStop = 2
+						}
+					case NodeOp_Mul, NodeOp_Power:
+						{
+							peSearchStart = 2
+							peSearchStop = 4
+						}
+					case NodeOp_Div:
+						{
+							peSearchStart = 4
+							peSearchStop = 5
+						}
+					default:
+						{
+							fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
+						}
+					}
+
+					for peId := peSearchStart; peId < peSearchStop; peId++ {
+						pe := pg.processingElements[peId]
+
+						if pe.executionSlots[latestArrivalTime] == nil {
+							bestPG = pgId
+							bestPE = peId
+							scheduleTime = latestArrivalTime
+							break
+						}
+
+						for time := latestArrivalTime + 1; ; time++ {
+							if pe.executionSlots[time] == nil {
+								bestPG = pgId
+								bestPE = peId
+								scheduleTime = time
+								break
+							}
+						}
+					}
+				}
+
+				inputLine := -1
+				inputTime := -1
+
+				for _, fanin := range n.fanins {
+					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
+						key := fanin.name + "@" + strconv.FormatInt(int64(bestPG), 10)
+
+						if _, exist := inputMap[key]; !exist {
+							pg := s.processor.processingGroups[bestPG]
+
+							inputLine, inputTime = pg.GetEarliestInputSlot(inputLine, inputTime)
+
+							inputMap[key] = inputTime
+							pg.AllocateInput(n, inputTime)
+						}
+					}
+				}
+
+				s.processor.processingGroups[bestPG].processingElements[bestPE].executionSlots[scheduleTime] = n
+				fmt.Printf("  schedule %s to G%d E%d @%d (%d)\n", n.name, bestPG, bestPE, scheduleTime, latestArrivalTime)
+
+				n.isScheduled = true
+				n.pgScheduled = bestPG
+				n.peScheduled = bestPE
+				n.startTime = scheduleTime
+				switch n.op {
+				case NodeOp_Add:
+					{
+						n.finishTime = scheduleTime + 1
+					}
+				case NodeOp_Mul, NodeOp_Power:
+					{
+						n.finishTime = scheduleTime + 2
+					}
+				case NodeOp_Div:
+					{
+						n.finishTime = scheduleTime + 3
+					}
+				default:
+					{
+						fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
+					}
+				}
+			}
+			traverse(root)
+
+			fmt.Printf("%d\n", curPG)
+			curPG = (curPG + 1) % 2
 
 			// We're done if there's only one root left.
 			if len(samePriorityRoots) == 1 {
@@ -309,5 +486,9 @@ func (s *Scheduler) Schedule() {
 			samePriorityRoots = append(
 				samePriorityRoots[:similarRootIdx], samePriorityRoots[similarRootIdx+1:]...)
 		}
+	}
+
+	for key, val := range inputMap {
+		fmt.Printf("%s = %d\n", key, val)
 	}
 }

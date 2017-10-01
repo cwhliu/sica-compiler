@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	//"strconv"
+	"strconv"
 )
 
 /*
@@ -24,6 +24,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=min\n")
 	for _, node := range g.inputNodes {
 		label := node.name[3:]
+		//label += "_" + strconv.FormatInt(int64(node.pgScheduled), 10)
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
@@ -48,6 +49,7 @@ func (g *Graph) OutputDotFile() {
 	w.WriteString("{rank=min\n")
 	for _, node := range g.constantNodes {
 		label := node.name[3:]
+		//label += "_" + strconv.FormatInt(int64(node.pgScheduled), 10)
 
 		w.WriteString(fmt.Sprintf("\"%s\" ", node.name))
 		w.WriteString(fmt.Sprintf("[shape=plaintext label=\"%s\"]\n", label))
@@ -56,8 +58,13 @@ func (g *Graph) OutputDotFile() {
 
 	// Operation nodes
 	for _, node := range g.operationNodes {
-		label, _ := NodeOpStringLUT[node.op]
-		label += node.name
+		label := node.name + "_"
+		label += strconv.FormatInt(int64(node.pgScheduled), 10) + "G"
+		label += strconv.FormatInt(int64(node.peScheduled), 10) + "_"
+		label += strconv.FormatInt(int64(node.startTime), 10) + "-"
+		label += strconv.FormatInt(int64(node.finishTime), 10)
+		//label, _ := NodeOpStringLUT[node.op]
+		//label += node.name
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)
 		//label = ""
 		//label += "P" + strconv.FormatInt(int64(node.processorAssigned), 10)
