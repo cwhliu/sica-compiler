@@ -41,15 +41,15 @@ func (pg *ProcessingGroup) AddProcessingElement(pe *ProcessingElement) {
 	pg.processingElements = append(pg.processingElements, pe)
 }
 
-func (pg *ProcessingGroup) CanAllocateInput(n *Node, time int) bool {
-	for line := 0; line < len(pg.inputSlots); line++ {
-		if pg.inputSlots[line][time] == nil {
-			return true
-		}
-	}
-
-	return false
-}
+//func (pg *ProcessingGroup) CanAllocateInput(n *Node, time int) bool {
+//	for line := 0; line < len(pg.inputSlots); line++ {
+//		if pg.inputSlots[line][time] == nil {
+//			return true
+//		}
+//	}
+//
+//	return false
+//}
 
 func (pg *ProcessingGroup) GetEarliestInputSlot(startLine, startTime int) (int, int) {
 	if startLine == -1 && startTime == -1 {
