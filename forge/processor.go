@@ -127,12 +127,12 @@ func CreateProcessor() *Processor {
 	}
 
 	// Sinusoid operation process groups.
-	for g := 0; g < 1; g++ {
+	for g := 0; g < 2; g++ {
 		pg := &ProcessGroup{}
 
-		pg.AddInputSlots(2)
+		pg.AddInputSlots(4)
 
-		for e := 0; e < 2; e++ {
+		for e := 0; e < 4; e++ {
 			pe := CreateProcessElement()
 
 			pe.kind = ProcessElementKind_Cordic

@@ -15,33 +15,39 @@ type Scheduler struct {
 ScheduleHeuristic schedules nodes onto the hardware heuristically.
 */
 func (s *Scheduler) ScheduleHeuristic() {
-	// This maps the name of an external node (input or constant) to a number
-	// for quick search and comparison.
-	extNodeIDs := make(map[string]int)
+	// This maps the name of an external node (input or constant) to an identification
+	// number for quick search and comparison.
+	extNodeIds := make(map[string]int)
 	for key, _ := range s.graph.inputNodes {
-		extNodeIDs[key] = len(extNodeIDs)
+		extNodeIds[key] = len(extNodeIds)
 	}
 	for key, _ := range s.graph.constantNodes {
-		extNodeIDs[key] = len(extNodeIDs)
+		extNodeIds[key] = len(extNodeIds)
 	}
-	numExtNodes := len(extNodeIDs) + 1
+	numExtNodes := len(extNodeIds)
 
+	// Create a priority queue to store roots in the graph.
 	roots := CreateNodePQ()
 
-	// This maps the name of a root node to a samePriorityRoots of boolean values. Each
-	// boolean value represents if the external node is used by the root node.
+	// This maps the name of a root node to a list of boolean values. Each
+	// boolean value represents if the corresponding external node is used by
+	// the root node or not.
 	rootExtNodes := make(map[string][]bool)
 
-	fmt.Println("Partitioning the graph ...")
+	// Stage 1: Partition the graph into sub-graphs and assign priority to these
+	//          sub-graphs based on their level and external node usage.
+	// ---------------------------------------------------------------------------
 
-	// Find all roots.
+	//fmt.Println(" Partitioning the graph ...")
+
+	// Find root of the sub-graphs.
 	for _, node := range s.graph.operationNodes {
 		// A root has either multiple fanouts, or a single fanout to an output.
 		if (node.NumFanouts() > 1) ||
 			(node.NumFanouts() == 1 && node.Fanout(0).kind == NodeKind_Output) {
 			// Now we have a root node, we need to traverse it and calculate some numbers.
 
-			// Allocate a samePriorityRoots for noting external nodes this root uses.
+			// Allocate a list to keep track of external nodes this root uses.
 			rootExtNodes[node.name] = make([]bool, numExtNodes)
 
 			// Maximum level of input to this root.
@@ -49,7 +55,9 @@ func (s *Scheduler) ScheduleHeuristic() {
 			// Total number of fanouts of the external nodes that are used by this root.
 			sumExtNodeFanouts := 0
 
-			// Keep track of traversed external nodes to avoid duplication.
+			// Keep track of traversed external nodes to avoid counting the same external
+			// node multiple times, otherwise sub-graphs using multi-fanout external nodes
+			// multiple times will be given extra high priority.
 			traversedExtNodes := make(map[string]bool)
 
 			// This function recursively traverses a given node back to its inputs.
@@ -63,7 +71,7 @@ func (s *Scheduler) ScheduleHeuristic() {
 							traversedExtNodes[fanin.name] = true
 							sumExtNodeFanouts += fanin.NumFanouts()
 
-							rootExtNodes[node.name][extNodeIDs[fanin.name]] = true
+							rootExtNodes[node.name][extNodeIds[fanin.name]] = true
 						}
 					} else if fanin.NumFanouts() > 1 {
 						// fanin is another root.
@@ -76,34 +84,52 @@ func (s *Scheduler) ScheduleHeuristic() {
 					}
 				}
 			}
+			// Now do the actual traversal.
 			traverse(node)
 
+			// Calculate the priority of this sub-graph. Smaller maximum input level is
+			// given higher priority because it's closer to the input so should be
+			// computed earlier. If two sub-graphs have the same maximum input level,
+			// then the sum of their external node's fanout breaks the tie. The overall
+			// priority is negated because the priority queue is ordered small to large.
 			priority := -(1000*(100-maxInputLevel) + sumExtNodeFanouts)
 
 			roots.Push(NodePQEntry{node, priority})
 		}
 	}
 
-	fmt.Println("Scheduling the graph ...")
+	// At this point, the priority queue roots contains root of sub-graphs sorted
+	// by their priority.
+
+	// Stage 2: Schedule the sub-graphs.
+	// ---------------------------------------------------------------------------
+
+	//fmt.Println(" Scheduling the graph ...")
 
 	inputMap := make(map[string]int)
 
-	// roots now contains root nodes sorted by their priority, let's process them.
+	costTblScheduleTime := make([][]int, len(s.processor.processGroups))
+	for pgId, pg := range s.processor.processGroups {
+		costTblScheduleTime[pgId] = make([]int, len(pg.processElements))
+	}
+
+	finalFinishTime := 0
+
+	// While there's still unscheduled roots.
 	for roots.Len() > 0 {
-		// Get the first priority root.
+		// Get the highest priority root.
 		entry := roots.PopEntry()
 		priority := entry.Priority.(int)
 
 		// A list of roots having the same priority. These roots will be processed
-		// in the order of similarity.
+		// in the order of their similarity.
 		var samePriorityRoots []*Node
 		samePriorityRoots = append(samePriorityRoots, entry.Payload)
-
 		// Now find all roots having the same priority.
 		for roots.Len() > 0 {
 			entry := roots.PopEntry()
 
-			// If the next root has a different priority, push it back and we're done finding.
+			// If the next root has a different priority, push it back and we're done.
 			if priority != entry.Priority.(int) {
 				roots.Push(entry)
 				break
@@ -112,43 +138,36 @@ func (s *Scheduler) ScheduleHeuristic() {
 			samePriorityRoots = append(samePriorityRoots, entry.Payload)
 		}
 
-		fmt.Printf("List length = %d\n", len(samePriorityRoots))
-
-		costTblScheduleTime := make([][]int, len(s.processor.processGroups))
-		for pgId, pg := range s.processor.processGroups {
-			costTblScheduleTime[pgId] = make([]int, len(pg.processElements))
-		}
+		//fmt.Printf("List length = %d\n", len(samePriorityRoots))
 
 		// Now we have a list of one or more roots, having the same priority.
 		// We start from the first one, then the one having the most common external
 		// nodes with it, and so on.
 		for len(samePriorityRoots) > 0 {
 			root := samePriorityRoots[0]
+			//fmt.Printf("%s\n", root.name)
 
-			fmt.Printf("%s\n", root.name)
-			var traverse func(*Node)
-			traverse = func(n *Node) {
+			var scheduleSubGraph func(*Node)
+			scheduleSubGraph = func(n *Node) {
 				// DFS
 				for _, fanin := range n.fanins {
 					if fanin.NumFanouts() == 1 &&
 						fanin.kind != NodeKind_Input && fanin.kind != NodeKind_Constant {
-						traverse(fanin)
+						scheduleSubGraph(fanin)
 					}
 				}
 
-				// Create cost table for schedule time.
+				// Initialize cost table for schedule time.
 				for pgId, pg := range s.processor.processGroups {
 					for peId, _ := range pg.processElements {
-						costTblScheduleTime[pgId][peId] = 32767
+						costTblScheduleTime[pgId][peId] = MaxInt
 					}
 				}
 
-				earliestArrivalTime := 32767
+				earliestArrivalTime := MaxInt
 				latestArrivalTime := 0
 
-				pgSearchStart := 0
-				pgSearchStop := len(s.processor.processGroups)
-				for pgId := pgSearchStart; pgId < pgSearchStop; pgId++ {
+				for pgId := 0; pgId < len(s.processor.processGroups); pgId++ {
 					// Skip checking the process group if this node can not be processed.
 					if len(compatibleMap[n.op][pgId]) == 0 {
 						continue
@@ -207,76 +226,75 @@ func (s *Scheduler) ScheduleHeuristic() {
 							}
 						}
 					}
-				} // end of searching PG
+				} // end of searching process group
 
-				bestPG := -1
-				bestPE := -1
-				scheduleTime := 32767
+				// Find the best process group/element to schedule this node based on the
+				// cost table.
+				bestPGId := -1
+				bestPEId := -1
+				scheduleTime := MaxInt
 				for pgId, pg := range s.processor.processGroups {
 					for peId, _ := range pg.processElements {
 						if costTblScheduleTime[pgId][peId] < scheduleTime {
-							bestPG = pgId
-							bestPE = peId
+							bestPGId = pgId
+							bestPEId = peId
 							scheduleTime = costTblScheduleTime[pgId][peId]
 						}
 					}
 				}
+				bestPG := s.processor.processGroups[bestPGId]
+				bestPE := bestPG.processElements[bestPEId]
 
-				pg := s.processor.processGroups[bestPG]
-				pe := pg.processElements[bestPE]
-
-				// Schedule external node fanin.
+				// Schedule external nodes that have not been scheduled yet.
 				inputLine := -1
 				inputTime := -1
 				for _, fanin := range n.fanins {
 					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
-						key := fanin.name + "@" + strconv.FormatInt(int64(bestPG), 10)
+						key := fanin.name + "@" + strconv.FormatInt(int64(bestPGId), 10)
 
 						if _, exist := inputMap[key]; !exist {
-							inputLine, inputTime = pg.GetEarliestInputSlot(inputLine, inputTime)
+							inputLine, inputTime = bestPG.GetEarliestInputSlot(inputLine, inputTime)
 
 							inputMap[key] = inputTime
-							pg.AllocateInput(n, inputTime)
+							bestPG.AllocateInput(n, inputTime)
 						}
 					}
 				}
 
 				// Schedule this node.
-				if pe.executionSlots[scheduleTime] != nil {
+				if bestPE.executionSlots[scheduleTime] != nil {
 					fmt.Printf("ERROR: execution slot is occupied!")
 				}
 
-				pe.executionSlots[scheduleTime] = n
+				bestPE.executionSlots[scheduleTime] = n
 				n.isScheduled = true
-				n.pgScheduled = bestPG
-				n.peScheduled = bestPE
+				n.pgScheduled = bestPGId
+				n.peScheduled = bestPEId
 				n.startTime = scheduleTime
 				switch n.op {
 				case NodeOp_Add:
-					{
-						n.finishTime = scheduleTime + 1
-					}
+					n.finishTime = scheduleTime + 1
 				case NodeOp_Mul, NodeOp_Power:
-					{
-						n.finishTime = scheduleTime + 2
-					}
+					n.finishTime = scheduleTime + 2
 				case NodeOp_Div:
-					{
-						n.finishTime = scheduleTime + 3
-					}
+					n.finishTime = scheduleTime + 3
 				case NodeOp_Sin, NodeOp_Cos:
-					{
-						n.finishTime = scheduleTime + 3
-					}
+					n.finishTime = scheduleTime + 3
 				default:
 					fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
 				}
 
-				fmt.Printf(" schedule %s to G%d E%d @%d\n", n.name, bestPG, bestPE, scheduleTime)
-			}
-			traverse(root)
+				if n.finishTime > finalFinishTime {
+					finalFinishTime = n.finishTime
+				}
 
-			// We're done if there's only one root left.
+				//fmt.Printf(" schedule %s to G%d E%d @%d\n", n.name, bestPGId, bestPEId, scheduleTime)
+			}
+			scheduleSubGraph(root)
+
+			// If this is the last one then we're done scheduling roots with the same
+			// priority, otherwise look for another same priority root sharing the most
+			// common external nodes with this root.
 			if len(samePriorityRoots) == 1 {
 				break
 			}
@@ -303,12 +321,17 @@ func (s *Scheduler) ScheduleHeuristic() {
 				}
 			}
 
-			// Relocate the most similar root to the front.
+			// Relocate the most similar root to the front so it will be picked in the
+			// next iteration.
 			samePriorityRoots[0] = samePriorityRoots[similarRootIdx]
 			samePriorityRoots = append(
 				samePriorityRoots[:similarRootIdx], samePriorityRoots[similarRootIdx+1:]...)
 		}
 	}
+
+	fmt.Printf(" %d nodes in %d cycles, speedup = %.2f\n\n",
+		len(s.graph.operationNodes), finalFinishTime,
+		float32(len(s.graph.operationNodes))/float32(finalFinishTime))
 
 	//for key, val := range inputMap {
 	//	fmt.Printf("%s = %d\n", key, val)

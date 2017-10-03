@@ -18,7 +18,7 @@ func (f *Forge) BuildGraph(filename string) error {
 		return err
 	} else {
 		// Evaluate the graph with random inputs and set the outputs as golden
-		g.EvaluateGolden(1)
+		//g.EvaluateGolden(1)
 
 		g.SimplifyArithmetic()
 		g.EliminateDuplicatedOperation()
@@ -26,9 +26,9 @@ func (f *Forge) BuildGraph(filename string) error {
 		g.DeleteUnusedNodes()
 
 		// Evaluate the graph again using the same inputs and compare with the golden outputs
-		g.EvaluateCompare()
+		//g.EvaluateCompare()
 
-		g.Analyze()
+		//g.Analyze()
 
 		// Pass the graph to the scheduler
 		f.scheduler.graph = g
