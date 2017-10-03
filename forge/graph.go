@@ -343,3 +343,70 @@ func (g *Graph) Analyze() {
 	}
 	fmt.Printf("\n")
 }
+
+// -----------------------------------------------------------------------------
+
+/*
+AddPostfix adds a postfix to every node in the graph.
+*/
+func (g *Graph) AddPostfix(postfix string) {
+	newAllNodes := make(map[string]*Node)
+	for name, node := range g.allNodes {
+		node.name = node.name + "_" + postfix
+		newAllNodes[name+"_"+postfix] = node
+	}
+	g.allNodes = newAllNodes
+
+	newInputNodes := make(map[string]*Node)
+	for name, node := range g.inputNodes {
+		newInputNodes[name+"_"+postfix] = node
+	}
+	g.inputNodes = newInputNodes
+
+	newOutputNodes := make(map[string]*Node)
+	for name, node := range g.outputNodes {
+		newOutputNodes[name+"_"+postfix] = node
+	}
+	g.outputNodes = newOutputNodes
+
+	newOperationNodes := make(map[string]*Node)
+	for name, node := range g.operationNodes {
+		newOperationNodes[name+"_"+postfix] = node
+	}
+	g.operationNodes = newOperationNodes
+
+	newConstantNodes := make(map[string]*Node)
+	for name, node := range g.constantNodes {
+		newConstantNodes[name+"_"+postfix] = node
+	}
+	g.constantNodes = newConstantNodes
+}
+
+/*
+Merge merges another graph with this graph.
+*/
+func (g *Graph) Merge(m *Graph) {
+	for name, node := range m.allNodes {
+		if _, exist := g.allNodes[name]; exist {
+			fmt.Printf("ERROR: node with same name exists.")
+		}
+
+		g.allNodes[name] = node
+	}
+
+	for name, node := range m.inputNodes {
+		g.inputNodes[name] = node
+	}
+
+	for name, node := range m.outputNodes {
+		g.outputNodes[name] = node
+	}
+
+	for name, node := range m.operationNodes {
+		g.operationNodes[name] = node
+	}
+
+	for name, node := range m.constantNodes {
+		g.constantNodes[name] = node
+	}
+}

@@ -30,6 +30,8 @@ func (f *Forge) BuildGraph(filename string) error {
 
 		//g.Analyze()
 
+		g.AddPostfix("1")
+
 		// Pass the graph to the scheduler
 		f.scheduler.graph = g
 
