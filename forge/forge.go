@@ -41,7 +41,7 @@ func (f *Forge) BuildGraph(filename string) error {
 ScheduleGraph schedules the operations in the graph onto the hardware accelerator.
 */
 func (f *Forge) ScheduleGraph() {
-	f.scheduler.ConfigureHW()
+	f.scheduler.processor = CreateProcessor()
 
 	f.scheduler.Schedule()
 }
