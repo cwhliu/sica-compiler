@@ -18,7 +18,9 @@ const (
 
 // -----------------------------------------------------------------------------
 
-// NodeOp represents the operation of a node.
+/*
+NodeOp represents the operation of a node.
+*/
 type NodeOp int
 
 const (
@@ -46,12 +48,16 @@ const (
 
 // -----------------------------------------------------------------------------
 
-// NodeOpLUT is a lookup table for converting a string to a NodeOp.
-// For example, "+" -> NodeOp_Add
+/*
+NodeOpLUT is a lookup table for converting a string to a NodeOp.
+For example, "+" -> NodeOp_Add
+*/
 var NodeOpLUT = make(map[string]NodeOp)
 
-// NodeOpStringLUT is a lookup table for converting a NodeOp to a string.
-// For example, NodeOp_Add -> "+"
+/*
+NodeOpStringLUT is a lookup table for converting a NodeOp to a string.
+For example, NodeOp_Add -> "+"
+*/
 var NodeOpStringLUT = make(map[NodeOp]string)
 
 func init() {

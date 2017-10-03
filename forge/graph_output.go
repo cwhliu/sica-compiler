@@ -58,11 +58,11 @@ func (g *Graph) OutputDotFile() {
 
 	// Operation nodes
 	for _, node := range g.operationNodes {
-		label := node.name + "_"
-		label += strconv.FormatInt(int64(node.pgScheduled), 10) + "G"
-		label += strconv.FormatInt(int64(node.peScheduled), 10) + "_"
-		label += strconv.FormatInt(int64(node.startTime), 10) + "-"
-		label += strconv.FormatInt(int64(node.finishTime), 10)
+		label := node.name + "\n"
+		label += "G" + strconv.FormatInt(int64(node.pgScheduled), 10)
+		label += "E" + strconv.FormatInt(int64(node.peScheduled), 10)
+		label += "@" + strconv.FormatInt(int64(node.startTime), 10)
+		label += "-" + strconv.FormatInt(int64(node.finishTime), 10)
 		//label, _ := NodeOpStringLUT[node.op]
 		//label += node.name
 		//label += strconv.FormatFloat(node.value, 'f', -1, 64)

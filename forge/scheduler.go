@@ -252,7 +252,6 @@ func (s *Scheduler) Schedule() {
 
 	fmt.Println("Scheduling the graph ...")
 
-	curPG := 0
 	inputMap := make(map[string]int)
 
 	// roots now contains root nodes sorted by their priority, let's process them.
@@ -281,9 +280,10 @@ func (s *Scheduler) Schedule() {
 
 		fmt.Printf("List length = %d\n", len(samePriorityRoots))
 
-		costTblScheduleTime := make([][]int, 2)
-		costTblScheduleTime[0] = make([]int, 5)
-		costTblScheduleTime[1] = make([]int, 5)
+		costTblScheduleTime := make([][]int, len(s.processor.processGroups))
+		for pgId, pg := range s.processor.processGroups {
+			costTblScheduleTime[pgId] = make([]int, len(pg.processElements))
+		}
 
 		// Now we have a list of one or more roots, having the same priority.
 		// We start from the first one, then the one having the most common external
@@ -302,34 +302,31 @@ func (s *Scheduler) Schedule() {
 					}
 				}
 
-				for g := 0; g < 2; g++ {
-					for e := 0; e < 5; e++ {
-						costTblScheduleTime[g][e] = 32767
+				// Create cost table for schedule time.
+				for pgId, pg := range s.processor.processGroups {
+					for peId, _ := range pg.processElements {
+						costTblScheduleTime[pgId][peId] = 32767
 					}
 				}
 
 				earliestArrivalTime := 32767
 				latestArrivalTime := 0
 
-				// If this node has external fanin, force it to be scheduled at the current
-				// processing group by limiting the search range.
 				pgSearchStart := 0
-				pgSearchStop := 2
-				for _, fanin := range n.fanins {
-					if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
-						pgSearchStart = curPG
-						pgSearchStop = curPG + 1
-					}
-				}
-
+				pgSearchStop := len(s.processor.processGroups)
 				for pgId := pgSearchStart; pgId < pgSearchStop; pgId++ {
-					pg := s.processor.processingGroups[pgId]
+					// Skip checking the process group if this node can not be processed.
+					if len(compatibleMap[n.op][pgId]) == 0 {
+						continue
+					}
+
+					pg := s.processor.processGroups[pgId]
 
 					inputLine := -1
 					inputTime := -1
 
 					// Compute the earliest and latest arrival time if the node is scheduled
-					// at this processing group.
+					// at this process group.
 					for _, fanin := range n.fanins {
 						if fanin.kind == NodeKind_Input || fanin.kind == NodeKind_Constant {
 							key := fanin.name + "@" + strconv.FormatInt(int64(pgId), 10)
@@ -366,33 +363,8 @@ func (s *Scheduler) Schedule() {
 						}
 					}
 
-					// Set processing element search range based on this node's operation.
-					peSearchStart := -1
-					peSearchStop := -1
-					switch n.op {
-					case NodeOp_Add:
-						{
-							peSearchStart = 0
-							peSearchStop = 2
-						}
-					case NodeOp_Mul, NodeOp_Power:
-						{
-							peSearchStart = 2
-							peSearchStop = 4
-						}
-					case NodeOp_Div:
-						{
-							peSearchStart = 4
-							peSearchStop = 5
-						}
-					default:
-						{
-							fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
-						}
-					}
-
-					for peId := peSearchStart; peId < peSearchStop; peId++ {
-						pe := pg.processingElements[peId]
+					for _, peId := range compatibleMap[n.op][pgId] {
+						pe := pg.processElements[peId]
 
 						for time := latestArrivalTime; ; time++ {
 							if pe.executionSlots[time] == nil {
@@ -406,20 +378,18 @@ func (s *Scheduler) Schedule() {
 				bestPG := -1
 				bestPE := -1
 				scheduleTime := 32767
-				for pg := 0; pg < 2; pg++ {
-					for pe := 0; pe < 5; pe++ {
-						if costTblScheduleTime[pg][pe] < scheduleTime {
-							bestPG = pg
-							bestPE = pe
-							scheduleTime = costTblScheduleTime[pg][pe]
+				for pgId, pg := range s.processor.processGroups {
+					for peId, _ := range pg.processElements {
+						if costTblScheduleTime[pgId][peId] < scheduleTime {
+							bestPG = pgId
+							bestPE = peId
+							scheduleTime = costTblScheduleTime[pgId][peId]
 						}
-						//fmt.Printf("%5d ", costTblScheduleTime[pg][pe])
 					}
-					//fmt.Printf("\n")
 				}
 
-				pg := s.processor.processingGroups[bestPG]
-				pe := pg.processingElements[bestPE]
+				pg := s.processor.processGroups[bestPG]
+				pe := pg.processElements[bestPE]
 
 				// Schedule external node fanin.
 				inputLine := -1
@@ -460,18 +430,17 @@ func (s *Scheduler) Schedule() {
 					{
 						n.finishTime = scheduleTime + 3
 					}
-				default:
+				case NodeOp_Sin, NodeOp_Cos:
 					{
-						fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
+						n.finishTime = scheduleTime + 3
 					}
+				default:
+					fmt.Printf("ERROR: %s has unsupported operation %d\n", n.name, n.op)
 				}
 
-				fmt.Printf(" schedule %s to G%d E%d @%d (%d)\n", n.name, bestPG, bestPE, scheduleTime, latestArrivalTime)
+				fmt.Printf(" schedule %s to G%d E%d @%d\n", n.name, bestPG, bestPE, scheduleTime)
 			}
 			traverse(root)
-
-			//fmt.Printf("%d\n", curPG)
-			curPG = (curPG + 1) % 2
 
 			// We're done if there's only one root left.
 			if len(samePriorityRoots) == 1 {
@@ -507,7 +476,18 @@ func (s *Scheduler) Schedule() {
 		}
 	}
 
-	for key, val := range inputMap {
-		fmt.Printf("%s = %d\n", key, val)
-	}
+	//for key, val := range inputMap {
+	//	fmt.Printf("%s = %d\n", key, val)
+	//}
+
+	//for op, list := range compatibleMap {
+	//  fmt.Printf("Node OP = %s\n", NodeOpStringLUT[op])
+	//  for pgId, _ := range list {
+	//    fmt.Printf("%d:", pgId)
+	//    for peId, _ := range list[pgId] {
+	//      fmt.Printf(" %d", list[pgId][peId])
+	//    }
+	//    fmt.Printf("\n")
+	//  }
+	//}
 }
