@@ -22,10 +22,6 @@ type Node struct {
 
 	value float64
 
-	actualStartTime   int
-	actualFinishTime  int
-	processorAssigned int
-
 	isScheduled bool
 	pgScheduled int
 	peScheduled int

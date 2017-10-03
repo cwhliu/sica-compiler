@@ -43,7 +43,6 @@ ScheduleGraph schedules the operations in the graph onto the hardware accelerato
 func (f *Forge) ScheduleGraph() {
 	f.scheduler.ConfigureHW()
 
-	//f.scheduler.ScheduleHEFT()
 	f.scheduler.Schedule()
 }
 
