@@ -12,9 +12,9 @@ type Scheduler struct {
 }
 
 /*
-Schedule performs heuristic scheduling.
+ScheduleHeuristic schedules nodes onto the hardware heuristically.
 */
-func (s *Scheduler) Schedule() {
+func (s *Scheduler) ScheduleHeuristic() {
 	// This maps the name of an external node (input or constant) to a number
 	// for quick search and comparison.
 	extNodeIDs := make(map[string]int)

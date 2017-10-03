@@ -43,7 +43,7 @@ ScheduleGraph schedules the operations in the graph onto the hardware accelerato
 func (f *Forge) ScheduleGraph() {
 	f.scheduler.processor = CreateProcessor()
 
-	f.scheduler.Schedule()
+	f.scheduler.ScheduleHeuristic()
 }
 
 func (f *Forge) Output() {
