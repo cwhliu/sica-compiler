@@ -4,6 +4,8 @@ import "fmt"
 
 type ProcessElementKind int
 
+const tmpMaxCycle = 32767
+
 const (
 	ProcessElementKind_Add ProcessElementKind = iota
 	ProcessElementKind_Mul
@@ -39,14 +41,14 @@ type Processor struct {
 func CreateProcessElement() *ProcessElement {
 	pe := &ProcessElement{}
 
-	pe.buffer0 = make([][]*Node, 128)
-	pe.buffer1 = make([][]*Node, 128)
-	for i := 0; i < 128; i++ {
-		pe.buffer0[i] = make([]*Node, 32767)
-		pe.buffer1[i] = make([]*Node, 32767)
-	}
+	//pe.buffer0 = make([][]*Node, 128)
+	//pe.buffer1 = make([][]*Node, 128)
+	//for i := 0; i < 128; i++ {
+	//	pe.buffer0[i] = make([]*Node, tmpMaxCycle)
+	//	pe.buffer1[i] = make([]*Node, tmpMaxCycle)
+	//}
 
-	pe.executionSlots = make([]*Node, 32767)
+	pe.executionSlots = make([]*Node, tmpMaxCycle)
 
 	return pe
 }
@@ -57,7 +59,7 @@ func (pg *ProcessGroup) AddInputSlots(numSlots int) {
 	pg.inputSlots = make([][]*Node, numSlots)
 
 	for i := 0; i < numSlots; i++ {
-		pg.inputSlots[i] = make([]*Node, 32767)
+		pg.inputSlots[i] = make([]*Node, tmpMaxCycle)
 	}
 }
 
@@ -78,7 +80,7 @@ func (pg *ProcessGroup) GetEarliestInputSlot(startLine, startTime int) (int, int
 		}
 	}
 
-	for time := startTime; time < 32767; time++ {
+	for time := startTime; time < tmpMaxCycle; time++ {
 		for line := startLine; line < len(pg.inputSlots); line++ {
 			if pg.inputSlots[line][time] == nil {
 				return line, time
@@ -104,17 +106,17 @@ func CreateProcessor() *Processor {
 	processor := &Processor{}
 
 	// Basic operation process groups.
-	for g := 0; g < 2; g++ {
+	for g := 0; g < 16; g++ {
 		pg := &ProcessGroup{}
 
-		pg.AddInputSlots(2)
+		pg.AddInputSlots(16)
 
-		for e := 0; e < 5; e++ {
+		for e := 0; e < 18; e++ {
 			pe := CreateProcessElement()
 
-			if e < 2 {
+			if e < 8 {
 				pe.kind = ProcessElementKind_Add
-			} else if e < 4 {
+			} else if e < 16 {
 				pe.kind = ProcessElementKind_Mul
 			} else {
 				pe.kind = ProcessElementKind_Div

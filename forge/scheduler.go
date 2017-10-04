@@ -6,7 +6,8 @@ import (
 )
 
 type Scheduler struct {
-	graph *Graph
+	graph       *Graph
+	mergedGraph *Graph
 
 	processor *Processor
 }
@@ -329,9 +330,17 @@ func (s *Scheduler) ScheduleHeuristic() {
 		}
 	}
 
-	fmt.Printf(" %d nodes in %d cycles, speedup = %.2f\n\n",
+	fmt.Printf("  %d nodes in %d cycles, speedup = %.2f\n",
 		len(s.graph.operationNodes), finalFinishTime,
 		float32(len(s.graph.operationNodes))/float32(finalFinishTime))
+
+	if s.mergedGraph != nil {
+		fmt.Printf(" (%d nodes in %d cycles, speedup = %.2f)\n",
+			len(s.mergedGraph.operationNodes), finalFinishTime,
+			float32(len(s.mergedGraph.operationNodes))/float32(finalFinishTime))
+	}
+
+	fmt.Printf("\n")
 
 	//for key, val := range inputMap {
 	//	fmt.Printf("%s = %d\n", key, val)

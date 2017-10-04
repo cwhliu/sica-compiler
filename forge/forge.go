@@ -13,29 +13,38 @@ type Forge struct {
 /*
 BuildGraph invokes the parser to parse the C++ source file and build a graph for it.
 */
-func (f *Forge) BuildGraph(filename string) error {
-	if g, err := f.parser.Parse(filename); err != nil {
-		return err
-	} else {
-		// Evaluate the graph with random inputs and set the outputs as golden
-		//g.EvaluateGolden(1)
+func (f *Forge) BuildGraph(filename, postfix string) {
+	g, _ := f.parser.Parse(filename)
 
-		g.SimplifyArithmetic()
-		g.EliminateDuplicatedOperation()
-		g.MaximizeParallelism()
-		g.DeleteUnusedNodes()
+	// Evaluate the graph with random inputs and set the outputs as golden
+	//g.EvaluateGolden(1)
 
-		// Evaluate the graph again using the same inputs and compare with the golden outputs
-		//g.EvaluateCompare()
+	g.SimplifyArithmetic()
+	g.EliminateDuplicatedOperation()
+	g.MaximizeParallelism()
+	g.DeleteUnusedNodes()
 
-		//g.Analyze()
+	// Evaluate the graph again using the same inputs and compare with the golden outputs
+	//g.EvaluateCompare()
 
-		g.AddPostfix("1")
+	//g.Analyze()
 
-		// Pass the graph to the scheduler
+	if postfix != "" {
+		g.AddPostfix(postfix)
+	}
+
+	// Pass the graph to the scheduler
+	if f.scheduler.graph == nil {
 		f.scheduler.graph = g
+	} else {
+		if f.scheduler.mergedGraph == nil {
+			f.scheduler.mergedGraph = f.scheduler.graph
+			f.scheduler.mergedGraph.Merge(g)
+		} else {
+			f.scheduler.mergedGraph.Merge(g)
+		}
 
-		return nil
+		f.scheduler.graph = g
 	}
 }
 
@@ -43,11 +52,17 @@ func (f *Forge) BuildGraph(filename string) error {
 ScheduleGraph schedules the operations in the graph onto the hardware accelerator.
 */
 func (f *Forge) ScheduleGraph() {
-	f.scheduler.processor = CreateProcessor()
+	if f.scheduler.processor == nil {
+		f.scheduler.processor = CreateProcessor()
+	}
 
 	f.scheduler.ScheduleHeuristic()
 }
 
 func (f *Forge) Output() {
-	f.scheduler.graph.OutputDotFile()
+	if f.scheduler.mergedGraph == nil {
+		f.scheduler.graph.OutputDotFile()
+	} else {
+		f.scheduler.mergedGraph.OutputDotFile()
+	}
 }
